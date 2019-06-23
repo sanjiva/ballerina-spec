@@ -123,19 +123,23 @@ C#, JavaScript. It also borrows ideas from many other existing programming
 languages including TypeScript, Go, Rust, D, Kotlin, Swift, Python and Perl.
 </p>
 <p>
-Ballerina is designed for modern development practices with a module based
-development model with namespace management via module repositories, including a
-globally shared central repository. Module version management, dependency
-management, testing, documentation, building and sharing are part of the
-language platform design architecture and not left for later add-on tools.
+The Ballerina language was designed as part of the Ballerina platform, which is
+a comprehensive software development platform that provides support for modern
+development practices, with a module based development model with namespace
+management via module repositories, including a globally shared central
+repository. Module version management, dependency management, testing,
+documentation, building and sharing are all part of this platform.
 </p>
 <p>
-Ballerina is a "batteries included" language: it comes with a standard library,
-which includes not only the usual low-level, general-purpose functionality, but
-also support for a wide variety of network protocols, interface standards, data
-formats and authentication/authorization standards, which make writing secure,
-resilient distributed applications significantly easier than with other
-languages. The standard library is not specified in this document.
+The Ballerina language includes a small library, the lang library, which
+provides fundamental operations on the data types defined by the language; the
+lang library is defined by this specification. The Ballerina platform includes
+an extensive standard library, which includes not only the usual low-level,
+general-purpose functionality, but also support for a wide variety of network
+protocols, interface standards, data formats and authentication/authorization
+standards, which make writing secure, resilient distributed applications
+significantly easier than with other languages. The standard library is not
+specified in this document.
 </p>
 <h2 id="notation">2. Notation</h2>
 <p>
@@ -197,7 +201,7 @@ A repository organizes binary modules into a 3-level hierarchy:
 Organizations are identified by Unicode strings, and are unique within a
 repository. Any organization name starting with the string
 <code>ballerina</code> is reserved for use by
-the Ballerina Platform. A module name is a Unicode string and is unique within a
+the Ballerina platform. A module name is a Unicode string and is unique within a
 repository organization. A particular module name can have one or more versions
 each associated with a separate binary module. Versions are semantic, as
 described in the SemVer specification.
@@ -208,7 +212,7 @@ module is associated directly with the module name.
 </p>
 <p>
 A binary module is a sequence of octets. Its format is specified in the
-Ballerina Platform.
+Ballerina platform.
 </p>
 <p>
 An abstract source module consists of:
@@ -232,7 +236,7 @@ stored in a repository:
 </ul>
 <p>
 An abstract source module can be stored in a variety of concrete forms. For
-example, the Ballerina Platform describes a method for storing an
+example, the Ballerina platform describes a method for storing an
 abstract source module in a filesystem, where the source parts are files with a
 <code>.bal </code>extension stored in a directory, the module name comes from
 the name of that directory, and the version and organization name comes from a
@@ -1146,8 +1150,28 @@ inside an XML element, specifically:
 <li>comments</li>
 </ul>
 <p>
-The attributes of an element are represented by a map&lt;string&gt;. The content
-of each element in the sequence is itself a distinct XML value.
+A single XML item, such as an element, is represented by a sequence consisting
+of just that item; these are called <em>singleton</em> xml values. The
+attributes of an element are represented by a map&lt;string&gt;. The content of
+each element in the sequence is itself a distinct XML value.
+</p>
+<p>
+The name of an XML element or attribute, which in the XML Information Set is
+represented by a combination of the [namespace name] and [local name]
+properties, is represented by a single string. If the [namespace name] property
+has no value, then the string consists of just the value of the [local name]
+property; otherwise, the string is of the form:
+</p>
+<pre>
+   {<var>namespace-name</var>}<var>local-name</var>
+</pre>
+<p>
+where <code><var>namespace-name</var></code> and
+<code><var>local-name</var></code> are the values of the [namespace name] and
+[local name] properties respectively. The attributes of an XML element include
+attributes that appear as members of the [namespace attributes] property of an
+element information item, as well as those that appear as members of the
+[attributes] property.
 </p>
 <p>
 XML values allow mutation in a different way from containers. Element items can
@@ -1159,9 +1183,8 @@ string.
 </p>
 <p>
 An XML value is iterable as a sequence of its items, where each character item
-is represented by a string with a single code point and other items are
-represented by a singleton XML value. A single XML item, such as an element, is
-represented by a sequence consisting of just that item.
+is represented by a string of length one and other items are represented by a
+singleton XML value.
 </p>
 <h4>Error</h4>
 
@@ -1190,7 +1213,7 @@ stack</li>
 A <em>module-qualified reason</em> string is a string that has the form
 </p>
 <pre>
-   <code>{</code><var>org-name</var><code>/</code><var>module-name</var><code>}</code><var>identifier</var>
+   {<var>org-name</var>/<var>module-name</var>}<var>identifier</var>
 </pre>
 <p>
 where <code><var>org-name</var></code>, <code><var>module-name</var></code> and
@@ -2688,13 +2711,10 @@ the expressions for members.
 A member of a list can be filled in automatically if the <a
 href="#FillMember">FillMember</a> abstract operation would succeed on it. The
 inherent type of a list establishes either a fixed length for the list or just a
-minimum length for the list, which may be zero. In the latter case, for each
-<var>j</var> greater than <var>m</var>, where <var>m</var> is the minimum length
-of the list, the inherent type of the list must be such that <var>j</var>-th
-member can be filled in automatically. In either case, a list constructor may
-specify only the first <var>k</var> members, provided that for each <var>i</var>
-from <var>k</var> + 1 up to the fixed length of the list, the <var>i</var>-th
-member can be filled in automatically.
+minimum length for the list, which may be zero. In the latter case, a list
+constructor may specify only the first <var>k</var> members, provided that for
+each <var>i</var> from <var>k</var> + 1 up to the fixed length of the list, the
+<var>i</var>-th member can be filled in automatically.
 </p>
 
 <h3>Mapping constructor</h3>
@@ -2828,7 +2848,8 @@ interpolation must be a simple type and must not be nil. Within a
 <code>interpolation</code> is interpreted as a literal character. A
 string-template-expr is evaluated by evaluating the expression in each
 interpolation in the order in which they occur, and converting the result of the
-each evaluation to a string as if using by <code>&lt;string></code>. The result
+each evaluation to a string as if using by <code>toString</code> function of the
+<code>lang.value</code> module of the lang library. The result
 of evaluating the <code>string-template-expr</code> is a string comprising the
 literal characters and the results of evaluating and converting the
 interpolations, in the order in which they occur in the
@@ -5909,6 +5930,9 @@ fully specified.</li>
 <li>A type-cast-expr can include annotations.</li>
 <li>The error detail record must belong to type Detail defined in the lang
 library.</li>
+<li>The compile-time requirement that the inherent type of a variable-length
+list must allow members to be filled-in has been removed; this is instead caught
+at run-time.</li>
 </ol>
 
 <h3>Summary of changes from 0.990 to 2019R1</h3>
