@@ -283,12 +283,18 @@ points.
 </p>
 
 <pre
-class="grammar">identifier := UndelimitedIdentifier | DelimitedIdentifier
-UndelimitedIdentifier :=
+class="grammar">identifier := UnquotedIdentifier | QuotedIdentifier
+UnquotedIdentifier :=
    IdentifierInitialChar IdentifierFollowingChar*
-DelimitedIdentifier := <code>^"</code> StringChar+ <code>"</code>
-IdentifierInitialChar := <code>A</code> .. <code>Z</code> | <code>a</code> .. <code>z</code> | <code>_</code> | UnicodeIdentifierChar
+QuotedIdentifier := <code>'</code> QuotedIdentifierChar+
+QuotedIdentifierChar :=
+  IdentifierFollowingChar
+  | QuotedIdentifierEscape
+  | StringNumericEscape
+IdentifierInitialChar :=  AsciiLetter | <code>_</code> | UnicodeIdentifierChar
 IdentifierFollowingChar := IdentifierInitialChar | Digit
+QuotedIdentifierEscape := <code>\</code> ^ ( AsciiLetter | 0x9 | 0xA | 0xD | UnicodePatternWhiteSpaceChar )
+AsciiLetter := <code>A</code> .. <code>Z</code> | <code>a</code> .. <code>z</code>
 UnicodeIdentifierChar := ^ ( AsciiChar | UnicodeNonIdentifierChar )
 AsciiChar := 0x0 .. 0x7F
 UnicodeNonIdentifierChar :=
@@ -308,6 +314,12 @@ Digit := <code>0</code> .. <code>9</code>
 Note that the set of characters allowed in identifiers follows the requirements
 of Unicode TR31 for immutable identifiers; the set of characters is immutable in
 the sense that it does not change between Unicode versions.
+</p>
+<p>
+The QuotedIdentifier syntax allows an arbitrary non-empty string to be treated
+as an identifier. In particular, a reserved keyword <code><var>K</var></code>
+can be used as an identifier by preceding it with a single quote i.e.
+<code>'<var>K</var></code>.
 </p>
 
 <pre
@@ -718,7 +730,7 @@ StringNumericEscape := <code>\u[</code> CodePoint <code>]</code>
 CodePoint := HexDigit+
 </pre>
 <p>
-A string is an immutable sequences of zero or more Unicode code points. Any code
+A string is an immutable sequence of zero or more Unicode code points. Any code
 point in the Unicode range of 0x0 to 0x10FFFF inclusive is allowed other than
 surrogates (0xD800 to 0xDFFF inclusive).
 </p>
@@ -972,7 +984,7 @@ class="grammar">map-type-descriptor := <code>map</code> type-parameter
 type-parameter := <code>&lt;</code> type-descriptor <code>></code>
 </pre>
 <p>
-A type <code>map&lt;T></code> contains a mapping shape <em>m</em> if every field
+A type <code>map&lt;T&gt;</code> contains a mapping shape <em>m</em> if every field
 shape in <em>m</em> has a value shape that is in <code>T</code>.
 </p>
 <p>
@@ -1001,7 +1013,7 @@ field-descriptor :=
 individual-field-descriptor :=
    type-descriptor field-name [<code>?</code> | default-value] <code>;</code>
 default-value := <code>=</code> expression
-record-type-reference := <code>*</code> type-descriptor-reference <code>;</code>
+record-type-reference := <code>*</code> type-reference <code>;</code>
 record-rest-descriptor := type-descriptor <code>...</code> <code>;</code>
 </pre>
 <p>
@@ -1041,9 +1053,11 @@ every extra field shape is a member of <code>T</code>.</li>
 <p>
 An inclusive-record-type-descriptor, which uses the <code>{</code> and
 <code>}</code> delimiters, allows any mapping value that includes the fields
-described. More precisely, a type descriptor <code>record { F };</code> is
-equivalent to <code>record {| F; T...; |}</code>, where T is the type that
-contains all pure shapes (which can be written as <code>anydata|error</code>).
+described, provided that the other fields are pure and not errors. More
+precisely, a type descriptor <code>record { F };</code> is equivalent to
+<code>record {| F; T...; |}</code>, where T is the type that contains all pure
+shapes other than errors, which can be written as <a
+href="#anydata"><code>anydata</code></a>.
 </p>
 <p>
 A record type descriptor that either is an inclusive-record-type-descriptor or
@@ -1063,7 +1077,7 @@ descriptor.
 </p>
 <p>
 A <code>record-type-reference</code> pulls in fields from a named record type.
-The <code>type-descriptor-reference</code> must reference a type defined by a
+The <code>type-reference</code> must reference a type described by a
 <code>record-type-descriptor</code>. The <code>field-descriptor</code>s and any
 <code>record-rest-descriptor</code> are copied into the type being defined; the
 meaning is the same as if they had been specified explicitly. For default
@@ -1103,7 +1117,7 @@ column-type-descriptor :=
 individual-column-type-descriptor :=
    [<code>key</code>] type-descriptor column-name <code>;</code>
 column-record-type-reference :=
-   <code>*</code> type-descriptor-reference [key-specifier (<code>,</code> key-specifier)*] <code>;</code>
+   <code>*</code> type-reference [key-specifier (<code>,</code> key-specifier)*] <code>;</code>
 key-specifier := <code>key</code> column-name
 column-name := identifier
 </pre>
@@ -1241,9 +1255,9 @@ the detail; the stack trace is not part of the shape. A type descriptor
 error&lt;<var>r</var>, <var>d</var>&gt; contains an error shape if <var>r</var>
 contains the shape's reason, and <var>d</var>, if present, contains the shape's
 detail. The bare type error contains all error shapes. The
-reason-type-descriptor must be a subtype of string; the detail-type-descriptor
-must be a subtype of <code>record { }</code> (which is equivalent to
-<code>map&lt;anydata|error&gt;</code>).
+reason-type-descriptor must be a subtype of string. The detail-type-descriptor
+must be a subtype of the <code>Detail</code> type, and defaults to the
+<code>Detail</code> type if omitted.
 </p>
 <p>
 A type of <code>error&lt;*&gt;</code> means that the type is a subtype of error,
@@ -1591,10 +1605,10 @@ preceding the <code>.</code> is <code>self</code>.
 
 <pre
 class="grammar">object-type-reference :=
-   <code>*</code> type-descriptor-reference <code>;</code>
+   <code>*</code> type-reference <code>;</code>
 </pre>
 <p>
-The <code>type-descriptor-reference</code> in an
+The <code>type-reference</code> in an
 <code>object-type-reference</code> must reference an abstract object type. The
 object-member-descriptors from the referenced type are copied into the type
 being defined; the meaning is the same as if they had been specified explicitly.
@@ -1613,7 +1627,7 @@ class="grammar">future-type-descriptor := <code>future</code> [type-parameter]
 </pre>
 <p>
 A future value represents a value to be returned by a named worker.  A future
-value belongs to a type <code>future&lt;T></code> if the value to be returned
+value belongs to a type <code>future&lt;T&gt;</code> if the value to be returned
 belongs to T.
 </p>
 <p>
@@ -1645,7 +1659,7 @@ annotations on type definitions to support this.
 class="grammar">stream-type-descriptor := <code>stream</code> [type-parameter]
 </pre>
 <p>
-A value of type <code>stream&lt;T></code> is a distributor for values of type
+A value of type <code>stream&lt;T&gt;</code> is a distributor for values of type
 <code>T</code>: when a value v of type T is put into the stream, a function will
 be called for each subscriber to the stream with v as an argument. T must be a
 pure type.
@@ -1698,10 +1712,13 @@ class="grammar">type-descriptor :=
    | anydata-type-descriptor
    | byte-type-descriptor
    | json-type-descriptor
-   | type-descriptor-reference
+   | type-reference
    | <code>(</code> type-descriptor <code>)</code>
-type-descriptor-reference := identifier | qualified-identifier
+type-reference := identifier | qualified-identifier
 </pre>
+<p>
+A type-reference must refer to a type definition.
+</p>
 <p>
 It is important to understand that the type descriptors specified in this
 section do not add to the universe of values. They are just adding new ways to
@@ -1748,7 +1765,7 @@ is not error. Thus all values belong to the type <code>any|error</code>. Note
 that a structure with members that are errors belongs to the <code>any</code>
 type.
 </p>
-<h4>Anydata type</h4>
+<h4 id="anydata">Anydata type</h4>
 
 <pre
 class="grammar">anydata-type-descriptor := <code>anydata</code>
@@ -1759,8 +1776,9 @@ other than errors. The type <code>anydata</code> contains a shape if and only if
 the shape is pure and is not the shape of an error value.
 </p>
 <p>
-Thus the type <code>anydata|error</code> is the supertype of all pure types. The
-type <code>anydata</code> is equivalent to the union
+Note that <code>anydata</code> allows structures whose members are errors. Thus
+the type <code>anydata|error</code> is the supertype of all pure types. The type
+<code>anydata</code> is equivalent to the union
 </p>
 
 <pre
@@ -1815,7 +1833,7 @@ creating an iterator object that matches the type
     }
 </pre>
 <p>
-In this specification, we refer to this type as Iterator&lt;T>.
+In this specification, we refer to this type as Iterator&lt;T&gt;.
 </p>
 <p>
 Conceptually an iterator represents a position between members of the sequence.
@@ -1847,8 +1865,8 @@ return value for the end position.
 <p>
 An object can make itself be iterable as a sequence of values of type T by
 providing a method named <code>__iterator</code> which returns a value that is a
-subtype of Iterator&lt;T>. In this specification, we refer to this type as
-Iterable&lt;T>.
+subtype of Iterator&lt;T&gt;. In this specification, we refer to this type as
+Iterable&lt;T&gt;.
 </p>
 <h4>Collection</h4>
 <p>
@@ -1857,8 +1875,8 @@ keys of type K, but defining a <code>__get(K k)</code> method returning a value
 of type V, that returns the value associated with key k. If the collection is
 mutable, then the object can also declare a <code>__put(K k, V v)</code> method
 that changes the value associated with key k to to value v. In this
-specification, we refer to these types as ImmutableCollection&lt;T> and
-MutableCollection&lt;T>.
+specification, we refer to these types as ImmutableCollection&lt;T&gt; and
+MutableCollection&lt;T&gt;.
 </p>
 <h4>Listener</h4>
 <p>
@@ -2122,11 +2140,17 @@ field-binding-pattern :=
    field-name <code>:</code> binding-pattern
    | variable-name
 rest-binding-pattern := <code>...</code> variable-name
-error-binding-pattern := <code>error</code> <code>(</code> error-arg-list-binding-pattern <code>)</code>
-error-arg-list-binding-pattern :=
-   simple-binding-pattern (<code>,</code> named-arg-binding-pattern)* [<code>,</code> rest-binding-pattern]
-   | named-arg-binding-pattern (<code>,</code> named-arg-binding-pattern)* [<code>,</code> rest-binding-pattern]
-   | [ rest-binding-pattern ]
+error-binding-pattern := direct-error-binding-pattern | indirect-error-binding-pattern
+direct-error-binding-pattern := <code>error</code> <code>(</code> direct-error-arg-list-binding-pattern <code>)</code>
+indirect-error-binding-pattern := error-type-reference <code>(</code> indirect-error-arg-list-binding-pattern <code>)</code>
+error-type-reference := type-reference
+direct-error-arg-list-binding-pattern :=
+   simple-binding-pattern [<code>,</code> error-field-binding-patterns]
+   | [error-field-binding-patterns]
+indirect-error-arg-list-binding-pattern := [error-field-binding-patterns]
+error-field-binding-patterns :=
+   named-arg-binding-pattern (<code>,</code> named-arg-binding-pattern)* [<code>,</code> rest-binding-pattern]
+   | rest-binding-pattern
 simple-binding-pattern :=
    capture-binding-pattern
    | wildcard-binding-pattern
@@ -2161,7 +2185,7 @@ consisting of all the other fields to be assigned to <code>v</code>; a
 field-binding-pattern consisting of just a variable-name <code>x</code> is
 equivalent to a field-binding-pattern <code>x: x</code>;
 </li>
-<li>an error-binding-pattern error(p<sub>r</sub>, f<sub>1</sub> = p<sub>1</sub>,
+<li>a direct-error-binding-pattern error(p<sub>r</sub>, f<sub>1</sub> = p<sub>1</sub>,
 f<sub>2</sub> = p<sub>2</sub>, ..., f<sub>n</sub> = p<sub>n</sub>, r) matches an
 error value if it has an error reason string that matches p<sub>r</sub> and a
 detail record that has fields f<sub>1</sub>, f<sub>2</sub>, ... , f<sub>n</sub> such
@@ -2169,6 +2193,11 @@ that p<sub>i</sub> matches the value of field f<sub>i</sub> for each i in 1 to
 n; if r is <code>...v</code> then a successful match causes a new mapping value
 consisting of all fields other than f<sub>1</sub>, f<sub>2</sub>, ... ,
 f<sub>n</sub> to be assigned to <code>v</code>;</li>
+<li>an indirect-error-binding-pattern ET(f<sub>1</sub> = p<sub>1</sub>,
+f<sub>2</sub> = p<sub>2</sub>, ..., f<sub>n</sub> = p<sub>n</sub>, r) matches an
+error value e if the direct-error-binding-pattern error(f<sub>1</sub> =
+p<sub>1</sub>, f<sub>2</sub> = p<sub>2</sub>, ..., f<sub>n</sub> =
+p<sub>n</sub>, r) matches e and the shape of e is in ET.</li>
 </ul>
 <p>
 All the variables in a binding-pattern must be distinct e.g. [x, x] is not
@@ -2322,7 +2351,7 @@ associativity.
 <br />
 <code>!x</code>
 <br />
-<code>&lt;T> x</code>
+<code>&lt;T&gt; x</code>
 <br />
 <code>typeof x</code>
    </td>
@@ -3133,7 +3162,7 @@ not a singleton xml value. The result type is <code>map&lt;string>?</code>.
 <h3 id="function_call">Function call expression</h3>
 
 <pre
-class="grammar">function-call-expr := [<code>start</code>] function-reference <code>(</code> arg-list <code>)</code>
+class="grammar">function-call-expr := function-reference <code>(</code> arg-list <code>)</code>
 function-reference := variable-reference
 arg-list :=
    positional-args [<code>,</code> other-args]
@@ -3153,12 +3182,6 @@ function terminates normally, then the result of the function-call-expr is the
 return value of the function; otherwise the function-call-expr completes
 abruptly with a panic. The static type of the function-call-expr is the return
 type of the function type.
-</p>
-<p>
-However, if <code>start</code> is specified, then the called function is
-executed on a new strand, and the result of the <code>function-call-expr</code>
-is a value of type future&lt;T>, where T is the return type of the function
-called.
 </p>
 <p>
 The variable-reference must refer to a variable with function type. The type
@@ -3205,7 +3228,7 @@ the value of the expression in a variable.
 <h3>Method call expression</h3>
 
 <pre
-class="grammar">method-call-expr := [<code>start</code>] expression <code>.</code> method-name <code>(</code> arg-list <code>)</code>
+class="grammar">method-call-expr := expression <code>.</code> method-name <code>(</code> arg-list <code>)</code>
 </pre>
 <p>
 A <code>method-call-expr</code> either calls a method or calls a function in the
@@ -3243,44 +3266,57 @@ It is a compile-time error if the resulting function call does not satisfy all
 the constraints that would apply if it has been written explicitly as a
 <code>function-call-expr</code>.
 </p>
-<p>
-If <code>start</code> is specified, then the called method or function is
-executed on a new strand, and the result of the <code>method-call-expr</code> is
-a value of type future&lt;T>, where T is the return type of the function or
-method called.
-</p>
 <h3>Error constructor</h3>
 
 <pre
-class="grammar">error-constructor-expr := <code>error</code> <code>(</code> error-arg-list <code>)</code>
-error-arg-list :=
-   positional-arg (<code>,</code> named-arg)*
-   | [named-arg (<code>,</code> named-arg)*]
+class="grammar">error-constructor-expr := direct-error-constructor-expr | indirect-error-constructor-expr
+direct-error-constructor-expr := <code>error</code> <code>(</code> direct-error-arg-list <code>)</code>
+indirect-error-constructor-expr := error-type-reference <code>(</code> indirect-error-arg-list <code>)</code>
+direct-error-arg-list := positional-arg (<code>,</code> named-arg)*
+indirect-error-arg-list := [named-arg (<code>,</code> named-arg)*]
 </pre>
 <p>
-An error-constructor-expr constructs a new error value. The positional-arg, if
-present, specifies the error reason string. Each named-arg specifies a field of
-the error detail mapping. The static type of positional-arg must be a subtype of
-string; the static type of each named-arg must be a pure type. The stack trace
-describes the stack at the point where the error constructor was evaluated.
+An error constructor constructs a new error value. There are two kinds of error
+constructor: direct and indirect. A direct error constructor specifies the error
+reason string as the first argument to the constructor. An indirect error
+constructor references an error type that determines the reason string.
 </p>
 <p>
-If there is a contextually expected type and the type of the error reason of
-the applicable contextually expected error type is a singleton string type, then
-the positional-arg can be omitted and the error reason will be the single
-string allowed by the type.
+The contextually expected type for the positional-arg in a
+direct-error-constructor-expr is string.
 </p>
 <p>
-If there is a contextually expected type and the applicable contextually
-expected type is an error type (rather than a union) with detail type
-<var>d</var>, then the error detail mapping will also have a field for any
-defaultable fields of <var>d</var> for which no named-arg was specified.
+The error-type-reference in an indirect-error-constructor must refer to an
+identifier named by a type definition whose type descriptor is an error type
+descriptor, whose reason-type-descriptor is a singleton string. An
+indirect-error-constructor-expr
+<code><var>ET</var>(<var>named-args</var>)</code> where
+<code><var>ET</var></code> refers to a type
+<code>error&lt;<var>S</var>,<var>D</var>&gt;</code>, where
+<code><var>S</var></code> is a singleton string, is equivalent to a
+direct-error-constructor-expr <code>&lt;<var>ET</var>&gt;error(<var>S</var>,
+<var>named-args</var>)</code>.
 </p>
 <p>
-Evaluating the error-constructor-expr creates a new detail record. The detail
-record is constructed as immutable, with its members being the result of
-appplying the ImmutableClone abstract operation on the result of evaluating each
-named-arg and every defaultable arg,
+Evaluating the error-constructor-expr creates a new detail mapping. Each
+named-arg specifies a field of the error detail mapping; the static type of each
+named-arg must be a pure type. If there is a contextually-expected-type for a
+direct-error-constructor-expr and the applicable contextually expected type is
+an error type descriptor (rather than a union) with detail type <var>D</var>,
+then the error detail mapping will also have a field for any defaultable fields
+of <var>D</var> for which no named-arg was specified. The contextually expected
+type for each named-arg is determined by the applicable contextually type in the
+same way as for a mapping-constructor-expr. The detail mapping for an
+indirect-error-constructor-expr is constructed as if by the equivalent
+direct-error-constructor-expr, and so in this case there will always be an
+applicable contextually expected type that is an error type descriptor. The
+detail mapping is constructed as immutable, with its members being the result of
+appplying the ImmutableClone abstract operation to the result of evaluating each
+named-arg and every defaultable arg.
+</p>
+<p>
+The stack trace in the constructed error value describes the execution stack at
+the point where the error constructor was evaluated.
 </p>
 
 <h3>Anonymous function expression</h3>
@@ -3382,7 +3418,7 @@ annotations that were attached to the type descriptor used to construct the
 value will this be available on the constructed value.</li>
 </ul>
 <p>
-The static type of <code>typeof-expr</code> is typedesc&lt;T>, where T is the
+The static type of <code>typeof-expr</code> is typedesc&lt;T&gt;, where T is the
 static type of <code>expression</code>.
 </p>
 <h3>Unary expression</h3>
@@ -3555,7 +3591,7 @@ left are the same as the most significant bit</li>
 left are zero</li>
 </ul>
 <p>
-If the operator is >> or >>> and the left hand operand is a subtype of byte,
+If the operator is &gt;&gt; or &gt;&gt;&gt; and the left hand operand is a subtype of byte,
 then the static type of the result is byte; otherwise the static type of the
 result is int.
 </p>
@@ -3768,6 +3804,7 @@ T|error.</li>
 <pre
 class="grammar">action :=
    remote-method-call-action
+   | start-action
    | worker-receive-action 
    | wait-action
    | flush-action
@@ -3794,6 +3831,45 @@ actions is the same as for expressions.
 A <code>checking-action</code> and <code>trap-action</code> is evaluated in the
 same way as a <code>checking-expr</code> and <code>trap-expr</code> respectively.
 </p>
+
+<h3>Threads and strands</h3>
+
+<p>
+Ballerina's concurrency model supports both threads and coroutines. A Ballerina
+program is executed on one or more threads. A thread may run on a separate core
+simultaneously with other threads, or may be pre-emptively multitasked with
+other threads onto a single core.
+</p>
+<p>
+Each thread is divided into one or more <em>strands</em>. No two strands
+belonging to the same thread can run simultaneously. Instead, all the strands
+belonging to a particular thread are cooperatively multitasked. Strands within
+the same thread thus behave as coroutines relative to each other. A strand
+enables cooeperative multitasking by <em>yielding</em>. When a strand yields,
+the runtime scheduler may suspend execution of the strand, and switch its thread
+to executing another strand. The following actions cause a strand to yield:
+</p>
+<ul>
+<li>worker-receive-action</li>
+<li>wait-action</li>
+<li>flush-action</li>
+<li>synchronous-send-action</li>
+</ul>
+<p>
+In addition, any function with an external-function-body can potentially yield;
+it should only do so if it performs a system call that would block. or calls a
+Ballerina function that itself yields. Functions in the lang library do not
+themselves yield, although if they call a function passed as an argument, that
+function may result in yielding.
+</p>
+<p>
+There are two language constructs whose execution causes the creation of new
+strands: named-worker-decl and start-action. These constructs may use
+annotations to indicate that the newly created strand should be in a separate
+thread from the current strand. In the absence of such annotations, the new
+strand must be part of the same thread as the current strand.
+</p>
+
 <h3>Function and worker execution</h3>
 
 <pre
@@ -3802,13 +3878,13 @@ class="grammar">function-body-block :=
 default-worker-init := sequence-stmt
 default-worker := sequence-stmt
 named-worker-decl :=
-   <code>worker</code> worker-name return-type-descriptor <code>{</code> sequence-stmt <code>}</code>
+   [annots] <code>worker</code> worker-name return-type-descriptor <code>{</code> sequence-stmt <code>}</code>
 worker-name := identifier
 </pre>
 <p>
-A worker represents a thread of control running within a function. A statement
+A worker represents a single strand of a function invocation. A statement
 is always executed in the context of a current worker. A worker is in one of
-three states: running, suspended or terminated. When a worker is in the
+three states: active, inactive or terminated. When a worker is in the
 terminated state, it has a termination value. A worker terminates either
 normally or abnormally. An abnormal termination results from a panic, and in
 this case the termination value is always an error. If the termination value of
@@ -3819,21 +3895,18 @@ distinguished from an error termination value resulting from an abnormal
 termination.
 </p>
 <p>
-A function always has a single default worker, which is unnamed. When a function
-is called, the current worker is suspended, and a default worker for the called
-function is started. When the default worker terminates, the function returns to
-its caller, and the caller's worker is resumed. If the default worker terminates
+A function always has a single default worker, which is unnamed. The strand for the
+default worker is the same as the strand of the worker on which function was called.
+When a function is called, the current worker becomes inactive, and a default worker
+for the called function is started. When the default worker terminates, the function
+returns to its caller, and the caller's worker is reactivated. Thus only one worker
+in each strand is active at any given time. If the default worker terminates
 normally, then its termination value provides the return value of the function.
 If the default worker terminates abnormally, then the evaluation of the function
 call expression completes abruptly with a panic and the default worker's
 termination value provides the associated value for the abrupt completion of the
 function call. The function's return type is the same as the return type of the
 function's default worker.
-</p>
-<p>
-The default worker of a function and the worker that called the function belong
-to the same thread of control, which is called a <em>strand</em>. Only one
-worker in a strand is running at any given time.
 </p>
 <p>
 A function also has zero or more named workers. Each named worker runs on its
@@ -3886,7 +3959,7 @@ for named workers as well as for the default worker.
 The name of a worker is in-scope as a final local variable. The scope is the
 function-body-block with the exception of the default-worker-init. When the
 worker name is accessed using a variable-reference-expr, it has type
-future&lt;T>, where T is the return type of the worker.
+future&lt;T&gt;, where T is the return type of the worker.
 </p>
 <p>
 In the above, function includes method, and function call includes method call.
@@ -3961,7 +4034,7 @@ The scope of the worker name declared in a named-worker-decl includes both other
 workers in the same fork-stmt and the block containing the fork-stmt starting
 from the point immediately after the fork-stmt. When a worker-name is in scope
 it can be accessed using a variable-reference-expr, resulting in a value of type
-future&lt;T>, where T is the return type of that worker.
+future&lt;T&gt;, where T is the return type of that worker.
 </p>
 <h3>Wait action</h3>
 <p>
@@ -3979,9 +4052,9 @@ wait-future-expr := expression but not mapping-constructor-expr
 </pre>
 <p>
 A wait-future-expr is used by a wait-action to refer to the worker to be waited
-for. Its static type must be future&lt;T> for some T. It can use a variable
+for. Its static type must be future&lt;T&gt; for some T. It can use a variable
 reference to refer to an in-scope named-worker-decl, which will be treated as a
-reference to a variable of type future&lt;T> where T is the return value of the
+reference to a variable of type future&lt;T&gt; where T is the return value of the
 worker.
 </p>
 <p>
@@ -4011,7 +4084,7 @@ panic, with the associated value being the termination value of the strand,
 which will be an error.
 </p>
 <p>
-If the static type of the wait-future-expr is future&lt;T> , then the static
+If the static type of the wait-future-expr is future&lt;T&gt; , then the static
 type of the single-wait-action is then T.
 </p>
 <h4>Multiple wait action</h4>
@@ -4847,17 +4920,26 @@ static type of the call-expr in an call-stmt is not nil.
 <h3>Remote method call action</h3>
 
 <pre
-class="grammar">remote-method-call-action :=
-   [<code>start</code>] expression <code>-></code> method-name <code>(</code> arg-list <code>)</code>
+class="grammar">remote-method-call-action := expression <code>-></code> method-name <code>(</code> arg-list <code>)</code>
 </pre>
 <p>
 Calls a remote method. This works the same as a method call expression, except
 that it is used only for a method with the <code>remote</code> modifier.
 </p>
+
+<h3>Start action</h3>
+
+<pre
+class="grammar">start-action := [annots] <code>start</code> (function-call-expr|method-call-expr|remote-method-call-action)
+</pre>
+
 <p>
-If <code>start</code> is specified, then the called method is executed on a new
-strand, and the result of the <code>remote-method-call-expr</code> is a value of type
-future&lt;T>, where T is the return type of the method called.
+The keyword <code>start</code> causes the following function or method
+invocation to be executed on a new strand. The arguments for the function or
+method call are evaluation on the current strand. A start-action returns a value
+of basic type future immediately. If the static type of the call expression or
+action <code><var>C</var></code> is T, then the static type of <code>start
+<var>C</var></code> is future&lt;T&gt;.
 </p>
 
 <h3>Conditional statement</h3>
@@ -4985,11 +5067,17 @@ field-match-patterns :=
    | [ rest-match-pattern ] 
 field-match-pattern := field-name <code>:</code> match-pattern
 rest-match-pattern := <code>...</code> <code>var</code> variable-name
-error-match-pattern := <code>error</code> <code>(</code> error-arg-list-match-pattern <code>)</code>
-error-arg-list-match-pattern :=
-   simple-match-pattern (<code>,</code> named-arg-match-pattern)* [<code>,</code> rest-match-pattern]
-   | named-arg-match-pattern (<code>,</code> named-arg-match-pattern)* [<code>,</code> rest-match-pattern]
-   | [ rest-match-pattern]
+error-match-pattern := direct-error-match-pattern | indirect-error-match-pattern
+direct-error-match-pattern := <code>error</code> <code>(</code> direct-error-arg-list-match-pattern <code>)</code>
+indirect-error-match-pattern := error-type-reference <code>(</code> indirect-error-arg-list-match-pattern <code>)</code>
+error-type-reference := type-reference
+direct-error-arg-list-match-pattern :=
+   simple-match-pattern [<code>,</code> error-field-match-patterns]
+   | [error-field-match-patterns]
+indirect-error-arg-list-match-pattern := [error-field-match-patterns]
+error-field-match-patterns :=
+   named-arg-match-pattern (<code>,</code> named-arg-match-pattern)* [<code>,</code> rest-match-pattern]
+   | rest-match-pattern
 simple-match-pattern :=
    wildcard-match-pattern
    | const-pattern
@@ -5003,6 +5091,13 @@ if and only every <code>field-match-pattern</code> matches against a field of
 the value. The variable in the <code>rest-match-pattern</code>, if specified, is
 bound to a new mapping that contains just the fields for which that did not
 match a <code>field-match-pattern</code>.
+</p>
+<p>
+For a match of an <code>indirect-error-match-pattern</code> against an error
+value to succeed, the error type referenced by the error-type-reference must
+contain the shape of the error value; since errors are immutable, this
+requirement is equivalent to requiring that the error value belong to the
+referenced error type.
 </p>
 
 <h3>Foreach statement</h3>
@@ -5028,7 +5123,7 @@ In more detail, a foreach statement executes as follows:
 <ol>
 <li>if c is a basic type that is iterable, then i is the result of calling
 c.iterator()</li>
-<li>if c is an object and c belongs to Iterable&lt;T> for some T, then i is the
+<li>if c is an object and c belongs to Iterable&lt;T&gt; for some T, then i is the
 result of calling c.__iterator()</li>
 </ol>
 </li>
@@ -5152,7 +5247,7 @@ Each source part in a Ballerina module must match the production
 <p>
 The import declarations must come before other declarations; apart from this,
 the order of the definitions and declarations at the top-level of a module is
-not significant.
+not constrained.
 </p>
 
 <pre
@@ -5169,76 +5264,79 @@ other-decl :=
 </pre>
 <h3>Module and program execution</h3>
 <p>
-Creating a Ballerina program from a collection of modules requires that one
-module is identified as the <em>root</em> module. The modules comprising the
-program consist of the root module together with transitive closure of its
-imported modules.
+A Ballerina program consists of one or more modules; one of these modules is
+distinguished as the <em>root</em> module. The source code for a module uses
+import declarations to identify the modules on which it depends directly. At
+compile-time, a root module is specified, and the modules comprising the program
+are inferred to be those that the root module imports directly or indirectly.
+The directed graph of module imports must be acyclic.
 </p>
 <p>
-If the root module of the program has a function called <code>main</code>, then
-it must be public and its return type must both be a subtype of
-<code>error?</code> and contain nil. Any parameters must have a type that is a
-subtype of anydata; they are not restricted to strings.
+Program execution may terminate successfully or unsuccessfully. Unsuccessful
+program termination returns an error value. Program execution consists of two
+consecutive phases: an initialization phase and a listening phase.
 </p>
 <p>
-If the root module does not have a function called <code>main</code>, then there
-must be at least one service declared in at least one of the program's modules.
+Module initialization is performed by calling an initialization function, which
+is synthesized by the compiler for each module. Module initialization can be
+unsuccessful, in which case the initialization function returns an error value.
+The initialization phase of program execution consists of initializing each of
+the program's modules. If the initialization of a module is unsuccessful, then
+program execution immediately terminates unsuccessfully, returning the error
+value returned by the initialization function.
 </p>
 <p>
-When a Ballerina program is executed, the arguments to main come from the
-command line made available by the operating system. The format of the command
-line is operating system dependent, but is typically some sort of string or
-array of strings. The implementation should make use of the declared parameter
-types of main in attempting to convert the supplied command line into an
-argument list acceptable to main. It may also make use of annotations on main.
+The initialization of a program's modules is ordered so that a module will not
+be initialized until all of the modules on which it depends have been
+initialized. (Such an ordering will always be possible, since the graph of
+module imports is required to be acyclic.) The order in which modules are
+initialized follows the order in which modules are imported so far as is
+consistent with the previous constraint.
 </p>
 <p>
-The execution of a program can terminate in one of three ways: success, failure
-or abnormal. In the failure and abnormal cases, there is an associated error
-value. For the failure case, the type of the error value can be determined at
-compile time.
+A module's initialization function performs expression evaluation so as to
+initialize the identifiers declared in the module's declarations; if evaluation
+of an expression completes abruptly, then the module initialization function
+immediately returns the error value associated with the abrupt completion. If a
+module defines a function named <code>__init</code>, then a module's
+initialization function will end by calling this function; if it terminates
+abruptly or returns an error, then the module's initialization function will
+return an error value. Note that the <code>__init</code> function of the root
+module will be the last function called during a program's initialization phase.
 </p>
 <p>
-The execution of a Ballerina has two or three consecutive phases:
-</p>
-<ol>
-<li>init</li>
-<li>main</li>
-<li>listen</li>
-</ol>
-<p>
-There is always an init phase. There must be at least one of the main or listen
-phases, and there may be both.
-</p>
-<p>
-In the init phase, every module comprising the program is initialized, in such
-an order than a module is always initialized after all the modules it imports
-have been initialized. If a module fails to initialize, then the program
-terminates.
+This specification does not define any mechanism for processing the program
+command-line arguments typically provided by an operating system. The Ballerina
+standard library provides a function to retrieve these command-line arguments.
+In addition, the Ballerina platform provides a convenient mechanism for
+processing these arguments. This works by generating a new command-line
+processing module from the specified root module. The <code>__init</code>
+function of the generated module retrieves the command-line arguments, parses
+them, and calls a public function of the specified root module (typically the
+<code>main</code> function). The parsing of the command-line arguments is
+controlled by the declared parameter types, annotations and names of the public
+functions. The generated module, which imports the specified root module,
+becomes the new root module.
 </p>
 <p>
-The main phase happens only if the root module has a main function. In this
-case, the main function is executed with arguments converted from the supplied
-command line. If the main function returns an error, then the program
-terminates.
+If the initialization phase of program execution completes successfully, then
+execution proceeds to the listening phase. The runtime state of each module
+includes a list of listener objects that have been registered with the module. A
+listener object is a <em>registered listener</em> of a running program if it is
+a member of the list of registered listeners of any of the program's modules. If
+at the start of the listening phase of program execution there are no registered
+listeners, then the listening phase immediately terminates successfully.
+Otherwise, the <code>__start</code> method of each registered listener is
+called; if any of these calls returns an error value, then program execution
+terminates unsuccessfully with this error value as its return value.
 </p>
 <p>
-If the main function returns nil and there is no listener registered with any
-module, then the program terminates successfully.
-</p>
-<p>
-Otherwise the listen phase happens. In this phase, all the listeners that have
-been registered with any of the modules are started, by calling their
-<code>__start</code> method. (If there was no main function, then the successful
-initialization of the required service declaration will ensure that at least one
-listener will have been registered.)
-</p>
-<p>
-The listen phase continues to execute until either the program explicitly exits,
-by calling a standard library function, or the user explicitly requests the
-termination the program using an implementation-dependent operating system
-facility (such as a signal on a POSIX system). In the latter case, the program
-will call the <code>__stop</code> request on each registered listener before
+The listening phase of program execution continues until either the program
+explicitly exits, by calling a standard library function, or the user explicitly
+requests the termination of the program using an implementation-dependent
+operating system facility (such as a signal on a POSIX system). In the latter
+case, the program will call the <code>__gracefulStop</code> or
+<code>__immediateStop</code> method on each registered listener before
 terminating.
 </p>
 <h3>Import declaration</h3>
@@ -5268,6 +5366,10 @@ A <code>module-prefix</code> declared by an <code>import-decl</code> is in the
 same symbol space as a <code>xmlns-namespace-prefix</code> declared by an
 <code>xmlns-decl-stmt</code>. This symbol space is distinct from a module's main
 symbol space used by other declarations.
+</p>
+<p>
+It is an error for a module to directly or indirectly import itself. In other
+words, the directed graph of module imports must be acyclic.
 </p>
 
 <h3>Module type definition</h3>
@@ -5362,6 +5464,16 @@ external-function-body := <code>=</code> [annots] <code>external</code> <code>;<
 An <code>external-function-body</code> means that the implementation of the
 function is not provided in the Ballerina source module.
 </p>
+<p>
+If a module has a function-defn with an identifier of <code>__init</code>, it is
+called called automatically by the system at the end of the initialization of
+that module; if this call returns an error, then initialization of the module
+fails. The following special requirements apply to the <code>__init</code>
+function of a module: it must not be declared <code>public</code>; its return
+type must both be a subtype of <code>error?</code> and contain <code>()</code>;
+it must have no parameters.
+</p>
+
 <h3>Service declaration</h3>
 
 <pre
@@ -5756,6 +5868,11 @@ descriptor</td>
    <td>external-function-body</td>
    <td>none</td>
   </tr>
+  <tr>
+   <td>worker</td>
+   <td>named-worker-decl, start-action</td>
+   <td>none</td>
+  </tr>
 </table>
 <h3>Documentation</h3>
 <p>
@@ -5958,6 +6075,12 @@ list must allow members to be filled-in has been removed; this is instead caught
 at run-time.</li>
 <li>Parameter names now have public or module-level visibility, which determines
 when a function call can use the parameter name to specify an argument.</li>
+<li>A type descriptor <code>record { }</code> is open to <code>anydata</code>
+rather than <code>anydata|error</code>.</li>
+<li>Calls using <code>start</code> are treated as actions, and so are not
+allowed within expressions.</li>
+<li>There is a new syntax for allowing arbitrary strings as identifiers to
+replace the old delimited identifier syntax <code>^"<var>s</var>"</code>.</li>
 </ol>
 
 <h3>Summary of changes from 0.990 to 2019R1</h3>
@@ -6036,7 +6159,7 @@ in order to make type system sound.</li>
 <li>The <code>match</code> statement has been redesigned.</li>
 <li>The <code>but</code> expression has been removed.</li>
 <li>The <code>is</code> expression for dynamic type testing has been added.</li>
-<li>The type-cast-expr &lt;T>E now performs unsafe type casts.The only
+<li>The type-cast-expr &lt;T&gt;E now performs unsafe type casts.The only
 conversions it performs are numeric conversions.</li>
 <li>The <code>anydata</code> type has been added, which is a union of simple and
 structural types.</li>
@@ -6044,7 +6167,7 @@ structural types.</li>
 <code>any</code>.</li>
 <li>Type parameters for built-in types (map, stream, future), which previously
 defaulted to any, are now required.</li>
-<li>The type parameter for json (e.g. json&lt;T>) is not allowed any more.</li>
+<li>The type parameter for json (e.g. json&lt;T&gt;) is not allowed any more.</li>
 <li>Type for table columns are restricted to subtype of anydata|error.</li>
 <li>There are now two flavors of equality operator: == and != for deep equality
 (which is allowed only for <code>anydata</code>), and ===  and !== for exact
@@ -6092,7 +6215,7 @@ been added.</li>
 <li>A synchronous message send action has been added.</li>
 <li>A flush action has been added to flush asynchronously sent messages.</li>
 <li>A wait action has been added to wait for a worker and get its return value.</li>
-<li>Futures have been unified with workers. A future&lt;T> represents a value to
+<li>Futures have been unified with workers. A future&lt;T&gt; represents a value to
 be returned by a named worker.</li>
 <li>Error handling of message send/receive has been redesigned.</li>
 </ol>
@@ -6145,7 +6268,7 @@ not by throwing it.</li>
 other than objects can now have built-in methods.</li>
 <li>The <code>lengthof</code> unary expression has been removed; the length
 built-in method can be used instead.</li>
-<li>The semantics of &lt;T>expr have been specified.</li>
+<li>The semantics of &lt;T&gt;expr have been specified.</li>
 <li>The value space for tuples and arrays is now unified, in the same way as the
 value space for records and maps was unified. This means that tuples are now
 mutable. Array types can now have a length.</li>

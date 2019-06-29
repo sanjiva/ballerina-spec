@@ -36,16 +36,13 @@ public function entries(map<Type> m) returns map<[string, Type]> = external;
 
 // Functional iteration
 
-// use delimited identifer for function name to avoid conflict with reserved name
-public function ^"map"(map<Type> m, function(Type val) returns Type1 func) returns map<Type1> = external;
+// use quoted identifer for function name to avoid conflict with reserved name
+public function 'map(map<Type> m, function(Type val) returns Type1 func) returns map<Type1> = external;
 # Applies `func` to each member of `m`.
 public function forEach(map<Type> m, function(Type val) returns () func) returns () = external;
 public function filter(map<Type> m, function(Type val) returns boolean func) returns map<Type> = external;
 public function reduce(map<Type> m, function(Type1 accum, Type val) returns Type1 func, Type1 initial) returns Type1 = external;
 
-# Clear the map, removing all entries.
-# After calling this function the length will be 0.
-public function clear(map<any|error> m) returns () = external;
 # Removes the member of `m` with key `k` and returns it.
 # Panics if there is no such member
 public function remove(map<Type> m, string k) returns Type = external;
