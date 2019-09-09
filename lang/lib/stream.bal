@@ -16,15 +16,15 @@
 
 # A type parameter that is a subtype of `anydata|error`.
 # Has the special semantic that when used in a declaration
-# all uses in the declaration must refer to same type. 
+# all uses in the declaration must refer to same type.
 @typeParam
-type PureType = anydata|error;
+type PureType anydata|error;
 
 # Publishes data to the stream.
 #
 # + strm - the stream to publish to
 # + data - data to be published to the stream
-# 
+#
 # Each subscriber receives a separate clone of the data.
 public function publish(stream<PureType> strm, PureType data) = external;
 

@@ -236,16 +236,17 @@ A direct table type descriptor will also provide a more convenient syntax for pr
 
 ### Table constructor
 
+In this document, to distinguish literal characters we use double quotes, rather than a different background color.
 
 ```
-table-constructor-expr := table [ [table-header [; table-rows]] ]
+table-constructor-expr := "table" "[" [table-header [";" table-rows]] "]"
 table-header := column-names | list-constructor-expr
-column-names := column-name(, column-name)*
+column-names := column-name ("," column-name)*
 column-name := identifier
-table-rows := table-row (, table-row)*
+table-rows := table-row ("," table-row)*
 table-row := single-table-row | multiple-table-rows
 single-table-row := expression
-multiple-table-rows := ... expression
+multiple-table-rows := "..." expression
 ```
 
 
@@ -253,6 +254,7 @@ single-table-row is an expression returning a tuple; the expression in multiple-
 
 The inherent type of the constructed table comes from the contextually expected type if there is one. Otherwise, it comes from the static types of the subexpressions (i.e. table-row), as with list and mapping constructors. Note that in this case, the single-table-row needs to get a contextually expected type whose type descriptor is a tuple type (if there was no contextually expected type, the static type of a single-table-row that was a list constructor would be an array type, which is not what is wanted).
 
+We could also allow the expression in a table-row to return a record as an alternative to a tuple.
 
 #### Discussion
 
@@ -326,62 +328,9 @@ We could use tabs instead of spaces to separate fields.
 
 ### Lang library
 
-A lot of this is very similar to lang.map and lang.array. Note that returned RowType values will always be immutable.
+See [lang.table module](table.bal).
 
-
-```
-@typeParam
-type RowType map<anydata|error>;
-@typeParam
-type RowType1 map<anydata|error>;
-@typeParam
-type KeyType map<anydata|error>;
-@typeParam
-type Type any|error;
-
-public function length(table tbl) returns int = external;
-public function iterator(table<RowType> tbl)
-   returns abstract object {
-      public next() returns record {|
-         RowType value;
-      |}
-   } = external;
-public function 'map(table<RowType> tbl,
-    function(RowType row) returns RowType1 func)
-  returns table<RowType1> = external;
-public function forEach(table<RowType> tbl,
-    function(RowType row) returns () func) returns () = external;
-// Note that filter preserves primary key
-public function filter(table<RowType,KeyType> tbl,
-    function(RowType row) returns boolean func)
-  returns table<RowType,KeyType> = external;
-public function reduce(table<RowType> m,
-   function(Type accum, RowType val) returns Type func,
-   Type initial) returns Type = external;
-# adds to the end of the table
-# Panics if inconsistent with inherent type,
-# including primary key constraint.
-public function add(table<RowType> tbl, RowType row)
-  returns () = external;
-public function rows(table<RowType> tbl)
-   returns RowType[] = external;
-
-// All the same as methods in map module
-public function keys(table<RowType,KeyType> tbl)
-   returns KeyType[] = external;
-# Panics if the key cannot be removed
-public function remove(table<RowType,KeyType>, KeyType key)
-  returns () = external;
-public function removeAll(table tbl)
-   returns () = external;
-public function hasKey(table<RowType,KeyType>, KeyType key)
-   returns boolean = external;
-# Panics if no value with this key
-public function get(table<RowType,KeyType>, KeyType key)
-  returns RowType = external;
-```
-
-
+A lot of this is very similar to lang.map and lang.array.
 
 ### SQL interop
 
@@ -458,10 +407,10 @@ Here's one way to write this:
 
 
 ```
-constrained-type-descriptor := type-descriptor where constraints
-constraints := constraint (, constraint)*
+constrained-type-descriptor := type-descriptor "where" constraints
+constraints := constraint ("," constraint)*
 constraint := unique-constraint
-unique-constraint := unique [ column-name (,column-name)* ]
+unique-constraint := "unique" "[" column-name ("," column-name)* "]"
 column-name := identifier
 ```
 
@@ -499,6 +448,34 @@ This would require adding a new type reference syntax:
 
 Is the `find` function sufficiently important to justify adding this? And would this *T? reference add optionality deeply or just for one level?
 
+### Changes
+
+The changes relative to 2019R2 can be divided up as follows:
+
+1. Table rows are ordered
+1. Storing a value in a table does an immutable clone; iteration yields immutable records
+1. Remove restriction on primary key
+1. Change table constructor syntax/semantics
+   * Outer brackets are square rather than curly
+   * Rows use expressions (typically list constructors), rather than special syntax
+   * Different syntax for istinguishing header row from other rows
+   * Allow column names in header row to be specified by expression
+   * Get rid of auto-increment
+   * Get rid of unique
+   * Primary key can come from contextually expected type
+1. Primary keys
+   * Allow 2nd type parameter for primary key record type.
+   * E[x] works for table specifying value of primary key as record, both as expression and lvalue
+1. Define how toString works for table
+1. More extensive lang.table module
+
+### Background
+
+Some other programming languages with a table data type are:
+
+*   [Power Query M](https://docs.microsoft.com/en-us/powerquery-m/power-query-m-language-specification) A functional language from Microsoft (included in Excel) 
+*   [Pyret](https://www.pyret.org/) A language intended particularly for CS education, done by some of the people behind Racket
+
 
 ## Query
 
@@ -510,9 +487,9 @@ Basic idea is to take C# LINQ as the starting point.
 
 ```
 query-expr := (foreach-clause [where-clause])+ select-clause
-foreach-clause := foreach typed-binding-pattern in expression	
-where-clause := where expression
-select-clause := select expression
+foreach-clause := "foreach" typed-binding-pattern "in" expression	
+where-clause := "where" expression
+select-clause := "select" expression
 ```
 
 
@@ -707,10 +684,10 @@ An alternative approach is to use a comprehension syntax based on the constructo
 
 ```
 list-comprehension-expr :=
-  [(foreach-clause [where-clause])+ select-clause]
-foreach-clause := foreach typed-binding-pattern in expression
-where-clause := where expression
-select-clause := select expression
+  "[" (foreach-clause [where-clause])+ select-clause "]"
+foreach-clause := "foreach" typed-binding-pattern "in" expression
+where-clause := "where" expression
+select-clause := "select" expression
 ```
 
 
@@ -808,8 +785,8 @@ C# LINQ does this quite nicely:
 
 ```
 join-clause :=
-  join typed-binding-pattern in iterable-expr
-  on left-expr equals right-expr
+  "join" typed-binding-pattern "in" iterable-expr
+  "on" left-expr "equals" right-expr
 ```
 
 
@@ -820,8 +797,21 @@ There's some SQL-funkiness as regards handling NULL.
 
 ### Grouping
 
-TBD
+```
+group-clause :=
+   "group" construct-expr "by" group-expr "into" typed-binding-pattern
+```
 
+`construct-expr` and `group-expr` are evaluated once for each iteration yielding values c and g.
+For each distinct (using `==`) value of g
+
+*  a list is constructed of all corresponding values of c,
+*  the list is bound to typed-binding-pattern
+*  the following clauses of the query are executed with the variables bound by typed-binding-pattern in scope
+
+TBD: also variant without `into`.
+
+XXX: How to determine the result? Typically with `into` the result will be a list.
 
 ### Aggregation
 

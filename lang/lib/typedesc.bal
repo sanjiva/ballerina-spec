@@ -18,12 +18,12 @@
 # Has the special semantic that when used in a declaration
 # all uses in the declaration must refer to same type. 
 @typeParam
-type AnydataType = anydata;
+type AnydataType anydata;
 
-# Construct a value with a specified type by copying another value.
+# Constructs a value with a specified type by copying another value.
 # + t - the type for the copy to be constructed
 # + v - the value to be copied
-# + return a new value that belongs to type `t`, or an error if this cannot be done
+# + return - a new value that belongs to type `t`, or an error if this cannot be done
 # 
 # When `v` is a structural value, the inherent type of the value to be constructed
 # comes from `t`. When `t` is a union, it must be possible to determine which

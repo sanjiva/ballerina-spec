@@ -14,16 +14,24 @@
 // specific language governing permissions and limitations
 // under the License.
 
-
 # The type bound for a table row.
+# Has the special semantic that when used in a declaration
+# all uses in the declaration must refer to same type.
 @typeParam
-type RowType = map<anydata|error>;
+type RowType map<anydata|error>;
 
-# Returns number of members in `tbl`.
+# Returns the length of a table.
+# The length of a table is the number of rows it has.
+# + tbl - table to operate on
+# + return - the length of `tbl`
 public function length(table<map<anydata|error>> tbl) returns int = external;
+
 # Returns an iterator over the members of `tbl`.
+# The iterator will iterate over the rows of the table in order.
+# + tbl - table to operate on
+# + return - an iterator over `tbl`
 public function iterator(table<RowType> tbl) returns abstract object {
-    public next() returns record {|
+    public function next() returns record {|
         RowType value;
     |}?;
 } = external;

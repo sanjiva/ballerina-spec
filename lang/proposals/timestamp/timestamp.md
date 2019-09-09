@@ -1,15 +1,19 @@
 # Date and time
 
+Please add comments to the associated issue [#287](https://github.com/ballerina-platform/ballerina-spec/issues/287).
+
 The Ballerina language does not provide any built-in types relating to date and time. Many comparable systems (XML Schema datatypes, SQL, Google protocol buffers) provide support one or more data types relating to date and time.
 
 
 ## Timestamp type
 
-This document proposes the addition of a new simple basic type, called timestamp, based on [RFC 3339 Date and Time on the Internet: Timestamps](https://tools.ietf.org/html/rfc3339).
+This document proposes the addition of a new simple basic type, called timestamp, that represents an instant of time on the UTC time scale.
+
+The string representation is defined by [RFC 3339 Date and Time on the Internet: Timestamps](https://tools.ietf.org/html/rfc3339).
 
 RFC 3339, which is a profile of ISO 8601, defines a standard format for a string representation of date+time, which uses the Gregorian calendar to specify unambiguously an instant of time on the UTC time scale.
 
-RFC 3339 allows for the use of time zone offsets, with Z meaning +00:00, so the following are all equivalent, in the sense that they refer to the same time:
+RFC 3339 allows for the use of time zone offsets, with Z meaning +00:00, so the following are all equivalent:
 
 ```
 1996-12-19T16:39:57-08:00
@@ -46,7 +50,7 @@ Why call it `timestamp`?
 
 *   Makes it clear what it is
 *   Consistent with main relevant standard (RFC 3339)
-*   SQL standard uses `timestamp` to mean the combination date and time, although it provides variants both with and without time zone
+*   SQL standard uses `timestamp` to mean the combination date and time; it provides variants both with and without time zone
 *   Google protobuf uses [timestamp](https://developers.google.com/protocol-buffers/docs/reference/java/com/google/protobuf/Timestamp)
 
 Another possible name would be `datetime`.
@@ -57,6 +61,7 @@ Why a built-in type?
     *   support widely used RFC3339/ISO8601 syntax for time
     *   support equality/ordering operation
     *   support scalar conversion
+*   Timestamps are a fundamental part of streaming query (which can be seen as querying tables with timestamp column)
 *   Timestamps are important for distributed computing
 *   Most systems of data types include this type
 
@@ -71,12 +76,7 @@ What about other date/time related types? Mostly they should be done as library 
     *   semantics are not self-contained: only really meaningful w.r.t. some time zone
     *   time zone database will be in standard library, not in lang library
 *   date
-    *   not supported by any RFC
-    *   time zone problem
-        *   if it conceptually refers to a 24 hour time internal, then a time zone is needed to unambiguously specifi
-        *   ISO 8601 date syntax does not include time zone
-        *   XML Schem
-
+    *   inherently relative to some timezone
 
 ## Literal syntax
 
@@ -86,9 +86,8 @@ Constructor
 
 We can use the functional constructor syntax. It would support either
 
-
-
-*   a single positional string argument, same as the literal syntax,
+*   a single positional string argument, same as the literal syntax, or
+*   XXX
 
 
 ## Precision
@@ -145,7 +144,7 @@ Scalar conversion should not include either positive or negative leap seconds. I
 *   do not advance for one second during a positive leap second, and
 *   skip forward one second during a negative leap second.
 
-There would then be a separate operation to return the duration of a partially elapsed leap second.
+There would then be a separate operation to return the duration, including any leap second, since the start of the UTC day.
 
 
 ### UTC and leap seconds
@@ -217,35 +216,21 @@ Will not preserve:
 
 *   more than nanosecond precision
 *   use of T vs t to separate date and time (RFC 3339 allows both)
-*   use of Z vs z vs +00:00 to represent a time zone offset of 0 (RFC 3339 says they are equivalent)
+*   time zone offset
 
 Will preserve:
 
-*   time zone offset
 *   precision of seconds component (i.e. number of digits following decimal point) up to 9 (since we already do this for decimal)
 
-Not sure:
+### Rationale
 
-*   use -00:00 vs +00:00.
-    *   RFC 3339 says:
-
-            If the time in UTC is known, but the offset to local time is unknown, this can be represented with an offset of "-00:00".  This differs semantically from an offset of "Z" or "+00:00", which imply that UTC is the preferred reference point for the specified time.
-
-    *   Probably should since we distinguish +0 and -0 for binary floating point
-
-The information that affects === but not == can be packed easily in 16 bits:
-
-
-
-*   11 bits for unsigned time zone offset in minutes (60 * 24 = 1440 < 2048 = 2<sup>11</sup>)
-*   1 bit for time zone offset sign
-*   4 bits for precision
-
+A network distributed application may be distributed across multiple time zones. The local time of the machine on which a part of the application is running is not generally important. The right approach is store and interchange timestamps in a neutral form (i.e. relative to UTC), and then use the time zone of the user to convert between UTC and local time. Preserving time zone offsets is not useful with this approach, and introduces complexity and confusion. For example, is the date of a timestamp the date in UTC or in local time?
 
 ## Epoch
 
 Epoch is 2000-01-01T00:00:00Z
 
+Alternative: 0000-01-01T00:00:00Z
 
 ### Rationale
 
@@ -263,9 +248,9 @@ Common computer epochs are:
 *   Unix: 1970-01-01T00:00:00Z (the first version of Unix was written in 1970)
 *   NTP: 1900-01-01T00:00:00Z (first version of NTP appeared in 1980)
 *   Win32: 1601-01-01T00:00:00Z (the start of a 400-year cycle of the Gregorian calendar)
+*   Go (zero time instant): 0000-01-01T00:00:00Z
 
 It would be more calendrically elegant to use 2001-01-01T00:00:00Z, but I think it's a bit too obscure.
-
 
 ## Time duration
 
@@ -273,16 +258,43 @@ A duration of time is represented using a decimal value containing a number of s
 
 This should be used not just in conjunction with the timestamp type, but throughout the standard library. In particular, the standard library will need to support a concept of monotonic time, which is a duration of time since an epoch which may be different between invocations of a Ballerina program, but which is guaranteed to be monotonically increasing even in the presence of system clock changes. Monotonic time would be represented by a decimal, giving the duration in seconds from the epoch.
 
-We can also support int as a representation for when only whole numbers of seconds are involved and the range is guaranteed to fit in an int.
+### Alternate
 
-We could also allow `s` as a floating point suffix with the same meaning as `d`. So when writing a duration, you can write e.g. write 10 seconds as `10s` instead of `10d`.
+Define
 
+```
+type SecondsDuration record {|
+   decimal seconds;
+|};
+```
+
+Then functions that return a result representing a duration in seconds would return a `SecondsDuration`. Functions that
+accept a duration as input could accept:
+
+```
+type TimeDuration record {|
+   int weeks?;
+   int days?;
+   int hours?;
+   int minutes?;
+   decimal seconds?;
+|};
+```
+
+In this case, the range of each field would not be limited to what cannot be expressed in previous fields, e.g. you can specify `{ minutes: 120 }`; a `TimeDuration` would be convered to an equivalent `SecondsDuration` by converting each field into seconds and adding them together. No fields would be equivalent to 0.
+
+We could then provide sugar for e.g. `{ seconds: 10.5 }` (if we feel we need to). Possibilities
+
+* `10.5s` (doing this for units other than seconds runs into the problem that `7d` means decimal 7)
+* `10.5 seconds` can we make it work generally that `42 foo` turns into `{foo: 42}`
+
+Two advantages of this approach:
+* the meaning of the value of clear without further context. With a bare decimal, additional clues are needed from the context (for example by including `Seconds` in the name of the function or field)
+* it makes it convenient to write duration values in programs (even without additional sugar)
 
 ### Rationale
 
 Why not a separate duration type?
-
-
 
 *   It is tempting to have a separate duration type and make arithmetic timestamp/duration arithmetic work
     *   timestamp + duration => timestamp
@@ -293,7 +305,6 @@ Why not a separate duration type?
 *   Time measured in seconds is just one of several SI base units (along with length in metres, mass in kilograms, amperes for electrical current). No reason to specially privilege duration. Can have general concept of quantity (number with units), for which one can define a system of arithmetic. 2m / 2s = 1 m/s
 
 Why decimal rather than float/int and why seconds as the unit?
-
 
 
 *   Decimal has enough precision to represent the lifetime of the earth in nanoseconds
@@ -307,62 +318,39 @@ Why decimal rather than float/int and why seconds as the unit?
 *   Ballerina is unlike other languages in having a decimal type from the beginning; so we ought to take advantage of this.
 *   This will not be optimally efficient for a Java-based implementation, particularly one that used BigDecimal for its representation of decimal. However, this can be improved by using an implementing a fixed-size 128-bit implementation of decimal.
 *   XML schema part 2 uses decimal seconds as the value space for timelines
-*   Google protobuf3 represents duration as 64-bit signed sconds
+*   Google protobuf3 represents duration as 64-bit signed seconds
 
-Alternative
+There are a number of use cases where it would be convenient to have a nice syntax for durations, including:
 
-Google protobuf3 has duration as 64-bit signed seconds plus 32-bit signed nanoseconds
+* streaming query
+* timeouts
 
+ISO syntax for durations is e.g. `P10DT5H` but that is a valid (albeit strange) identifier.
 
 ## Range
 
-The number of seconds since the epoch is limited to what is representable by a 64-bit signed integer.
-
+The limit in RFC 3339 is that the year number is four digits i.e. between 0000 and 9999. The timestamp datatype adopts this limit. Any timestamp value will be such that when converted to a string, the year will be representable as four digits.
 
 ### Rationale
 
-We ought to enable a fixed size representation. 64 bits is not viable given nanosecond precision, and the lexical information that we need to preserve. So it makes sense to aim for 128-bits (the same size as decimal).
-
-We should support a range that conveniently fit into a 128-bit representation of timestamp, assuming nanosecond precision e.g.
+We ought to enable a fixed size representation. 64 bits is not viable given nanosecond precision, and the lexical information that we need to preserve. So it makes sense to aim for 128-bits (the same size as decimal). The following representation (in C syntax) has a number of advantages:
 
 
 ```
 struct timestamp {
-  // signed seconds since the epoch, excluding leap seconds
-  int64 seconds;
-  // Nanoseconds part of time since the epoch.
-  // Always positive.
-  // Normally this is less than 1,000,000,000
-  // but timestamps during a positive leap second are represented
-  // with a nanoseconds fields that is >= 1,000,000,000
-  // and < 2,000,000,000.
-  // If nanoseconds field is n >= 1,000,000,000 then
-  // n - 999,999,999 nanoseconds of the leap second have elapsed.
-  // A timestamp whose string representation
-  // has a seconds field of "60.000" will have a
-  // nanoseconds field of 1,0000,000,000;
-  // if the string has "60.999999999",
-  // then the nanoseconds field will be 1,999,999,999.
-  // Converting to a scalar value will
-  // use max(nanoseconds, 999999999).
-  unsigned32 nanoseconds;
-  // time zone offset that was used to specify the timestamp,
-  // in minutes;
-  // the seconds and nanoseconds fields are in UTC
-  short timeZoneOffsetMinutes;
-  // this is non-zero only if timeZoneOffset is zero
-  // it means use -00:00 instead of Z
-  char localTimeZoneOffsetUnknown;
+  // nanoseconds from start of UTC day
+  // days with a positive leap second have one more seconds thatS usual
+  int64 nanosOfDay;
+  // days epoch to start of UTC day
+  int32 dayNumber;
   // number of digits after decimal point, in seconds field
   char secondsPrecision;
 };
 ```
 
-
-(This representation is inspired by an [old proposal](https://www.cl.cam.ac.uk/~mgk25/time/c/) for ISO C.)
+The secondsPrecision could be packed into the top bits of the dayNumber.
 
 Background info:
-
 
 
 *   Java 8 Instant type uses long seconds + int nanoseconds (i.e. 96 bits)
@@ -379,6 +367,7 @@ Background info:
 *   ISO 8601 says proleptic use of Gregorian calendar should only be by agreement between the partners in information interchange
 *   64-bit signed count of nanoseconds can express a range of about ±292 years
 *   Unix signed 32-bit seconds will overflow in year 2038
+*   Google proto3 timestamp restricted to 4 digit years, but does not preserve local time zone.
 
 
 ## Lang library
@@ -387,38 +376,193 @@ See [lang.timestamp module](timestamp.bal).
 
 ## Standard library
 
+See [datetime module draft](datetime.bal).
+
+### Broken down time
+
+The basic idea is to define record types that contain various combinations of fields describing a date and time.
+
+The fields are:
+
+```
+    int year;
+    int month;
+    int day;
+    int hour;
+    int minute;
+    decimal second;
+    record {|
+        (+1|-1) sign;
+        int hour;
+        int minute;
+    |} offset;
+```
+
+This shows a number of design choices:
+*  represent fractional seconds using decimal
+*  don't make date and time be separate records
+*  use the word offset to describe the difference between UTC and local time 
+*  make the fields relating to offset be a separate record
+*  use singular rather than plural for the date, time and components of offset fields
+*  use a sign field rather than signed values of `hour` and `minute` 
+*  use values of +1 and -1 to present the sign
+
+Considerations that motivate the above choices:
+*  SQL uses year/month/day/hour/minute/second 
+*  a time-zone is not the same thing as a UTC-local offset; a time-zone is a region of the world where clocks show the same time; a single time-zone may have different offsets at different times of year (because of daylight savings time)
+*  there is a parallel between time of day and offset
+    *  the combination of hour/minute/second represents the time duration from the start of the day
+    *  the offset is also a time duration, without any fraction of a minute, together with a sign (duration itself is quantity, so not signed)
+       * not really true for local time, because of discontinuities within a day (leap seconds and daylight savings time)
+    *  using a `sign` field makes the constraints on hour/minute in the offset the same as on hour/minute in the time of day
+*  without a `sign` field, an offset of `-02:30` can be confusing; logically it would be `{ hour: -2, minute: -30 }` (although there are very few such time zones)
+*  fields should be accessed in a uniform way: for example, I want to access the `hour` field of a record `x` as `x.hour`, regardless of whether `x` represents a time, a date+time, a time+offset or a date+time+offset
+
+Not confident about following points:
+* day vs dayOfMonth: if we have derived field dayOfWeek, then perhaps it should be dayOfMonth
+* singular vs plural
+   * year/month/day should be singular since they are ordinals: when month is 2, it is saying it is month number 2
+   * in UTC, hour and minute can be seen as specifying durations (how many hours and minutes from the start of the day)
+   * in local time, hour and minute are not durations, because of daylight savings time
+   * second is decimal allowing for fractions, so it is saying how many seconds since start of minute; this is true in local time as well as UTC, since daylight savings time adjustments are always whole minutes
+   * time zone offsets are always whole minutes, so a leap second is always the last second of a minute, so even with leap seconds, the seconds field is measuring the number of seconds from the start of a minute
+   * the second field has a different datatype from the other field
+   * given all the above, would it be better to make `second` alone be plural?
+   * we could make second field be an int and fractionOfSecond be a decimal
+
+
+For discussion purposes we will use single letters to refer to combinations of fields:
+* D for year/month/day
+* T for hour/minute/second
+* O for offset
+
+We need names for at least the following combinations, which all have corresponding SQL types:
+* D - DATE
+* T - TIME
+* DT - TIMESTAMP
+* TO - TIME WITH TIMEZONE
+* DTO - TIMESTAMP WITH TIMEZONE
+
+Design choices are:
+* What word to use for T? Choices of `Time` and `TimeOfDay`? `Time` is concise but is a rather overloaded choice.
+* How to deal with variant with and without offset?
+   * Do we use the unqualified word (e.g. Time) for one variant and, if so, which?
+   * Which word to we use for the qualified variant?
+      * Possibilities for qualifying the version with offset include `TimeOffset`, `OffsetTime`, `TimeWithOffset`
+      * Possibilities for qualifying the version without offset include `LocalTime`
+* What word to use for combination of date and time? Possibilties include `DateTime` and `Timestamp`?
+
+My current preferred choices are:
+* Date
+* Time
+* DateTime
+* TimeWithOffset
+* DateTimeWithOffset
+
+There are two other, related issues:
+*  How to deal with derived fields?
+* How to deal with openness?
+
+When a Date (or something including a date) os returned as the output of an operation, for example as the output of breaking down a timestamp, it is convenient for it to include information derivable from the date, most importantly the day of the week. However, you don't want the user to have to specify the day of the week when using a date as the input to some operation.
+
+Both open and closed variants of records types make sense. Input parameters should typically be open, but return results may sometimes be closed.
+
+
+
+There are also fields that make sense when date/time is relative to a time-zone (not an offset):
+* whether daylight saving time is in effect
+* some way to disambiguate the case where two instants have the same local time, because of clocks going back at the end of daylight saving time (see section below); daylight savings time can be used for this, but is perhaps better separated
+* the conventional abbreviation (e.g. EDT/EST)?
+
+
+There are also fields for time durations, in addition to hour/minute/second, which are equivalent to number of seconds (if you ignore leap seconds)
+*  week
+*  day (which is ambiguous with day in date)
 
 ### Current time
 
-Functions to return current values of
+Functions to return current value of wall-clock time as a timestamp
+*   should this be in the lang library?
+*   should have named argument specifying precision, which should default to something reasonable (0 probably); a default of 0 will discourage people from using wall-clock time when they should be using monotonic time
+*   way to get timestamp with UTC offset or with local time offset
+    *   how useful is local time offset in a network distributed app?
+*   should there be some control over leap-second handling?
+    *   the default should be whatever the system gives you
+    *   should there be an optional argument to smooth?
 
 
+### Monotonic time
 
-*   monotonic time as a decimal
-*   wall-clock time as a timestamp
-    *   should have named argument specifying precision, which should default to something reasonable (0 probably); a default of 0 will discourage people from using wall-clock time when they should be using monotonic time
-    *   what should the time-zone offset be, or should there be an argument controlling this?
-        *   Z time-zone offset (not really correct if this is not in fact the local time-zone offset)
-        *   local-time zone offset (how useful is this for network distributed applications, where different parts may well be running in different time zones?)
-        *   unspecified/unknown local time-zone (i.e. -00:00)
-    *   should there be some control over leap-second handling?
-        *   the default should be whatever the system gives you
-        *   should there be an optional argument to smooth?
+* Decimal giving elapsed time in seconds from unspecific epoch.
+* Guaranteed monotonically increasing even with clock resets and leap seconds
+* Maximum precision by default?
+* Not interchangeable between address spaces
+* Think about how this works with long-running processes (BPEL, suspend/resume)
+* Go combines monotonic time and wall-clock time into a single value. Should we do this? Poor fit for data vs non-data distinction
+
+
 *   time-zone offset; this is a time duration so it should be returned as a decimal number of seconds
     *   this can presumably change during the execution of a program, for example if daylight saving time comes into effect, or if the computer moves between time zones
+*   monotonic time as a decimal
 
 
-### Leap second list
+### Atomic time
 
-The standard library will have a leap second list, which can be used to provide a number of useful operations. Note that these operations will fail if they are applied to times beyond the expiry of the leap second list.
+There is a group of operations that relate to atomic time and make use a a leap second list.  Note that these operations will fail if they are applied to times beyond the expiry of the leap second list.
 
 
+Whereas the UTC time-scale has leap seconds that result in discontinuities, atomic time (TAI) is a time-scale that does not have discontinuities. Converting between TAI and UTC requires a leap second list.
+
+Operationss include:
 
 *   Convert between timestamps using smoothed time (either the Google/AWS smear, or some other smear) and timestamps that correctly follow the definition of UTC (and RFC 3339)
 *   Convert between UTC and TAI
 *   Determine the elapsed time (i.e. time including leap seconds) between two UTC timestamps
 
 One interesting issue is how to deal with updates to the leap second list, which might potentially happen during a long-lived Ballerina process.
+
+### Time zones
+
+Database of named time zones as described by IANA. 
+
+Time zones are identified by combination of continent (or ocean) plus largest city in the continent.
+
+Each time zone has information for mapping from UTC to local times in that time zone
+*   information about offset of "standard time" from UTC, where standard time means time without any daylight savings time rules; offset changes from time to time according to regulations established by civil authorities
+*    information when daylight saving time is in effect
+In addition, there is information about the conventional abbreviation of the time zone name both with and without daylight saving time (e.g. EST or EDT).
+
+There are two levels of complexity in dealing with time zone data:
+
+*   dealing with specific instants of time where the offset between UTC and local time changes
+*   dealing with recurrence rules for daylight savings time (e.g. daylight savings time starts at the second Sunday in March)
+
+The latter can be expanded into the former.
+
+Daylight saving time transition point generally described by record with following members:
+*  month of year (1-12)
+*  day of week (0-6)
+*  which occurrence of the day of the week in the month (0-5), where 5 means last
+*  local hour of day (00-23); sometimes 24 is used 
+*  local minute of day (00-59); usually 0
+
+
+
+RFC 8536 describes a binary format for a time zone, that contains the expanded information together with recurrence rules, which are based on format of [POSIX TZ environment variable](http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap08.html).
+
+Microsoft (Bing) [Time Zone API](https://docs.microsoft.com/en-us/bingmaps/rest-services/timezone/convert-local-time-zone).
+
+### Local time diambiguation
+
+When the clocks go back at the end of summertime, then there will be two instants of time that have the same local time. In order to convert correctly from a broken down local time into UTC using a timezone, there must be a way to distinguish between them.
+
+For the first of these, daylight saving time will be in effect; for the second it will not. So one way to disanbiguate to to rely on this. Another way is to have a field that explicitly distinguishes between the two.
+
+Python [PEP 495](https://www.python.org/dev/peps/pep-0495/) has a good discussion of this.
+
+Some countries (e.g. Austria) have a convention for distinguihsing these two times using A/B: if the clocks go back at midnight, then the first occurrence of 23:01 would be 23 A 1 and the second 23 B 1.
+
+A related problem is what to do with gaps in local time that occur when clocks go forward. In particular, what happens if you try to convert a local time that the clocks have skipped past?
 
 
 ## Alternative approach to leap seconds

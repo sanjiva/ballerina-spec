@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>Ballerina Language Specification, 2019R3-pre1</title>
+  <title>Ballerina Language Specification, 2019R3</title>
   <meta charset="utf-8" />
   <style type="text/css">
     body { font-family: sans-serif; line-height: 1.38;  }
@@ -13,7 +13,7 @@
   </style>
 </head>
 <body>
-<h1>Ballerina Language Specification, 2019R3-pre1</h1>
+<h1>Ballerina Language Specification, 2019R3</h1>
 <p>
 Primary contributors:
 </p>
@@ -24,7 +24,7 @@ Primary contributors:
 <li>Hasitha Aravinda, <a href="mailto:hasitha@wso2.com">hasitha@wso2.com</a></li>
 </ul>
 <p>
-(Other contributors are listed in <a href="#contributors">Appendix C</a>.)
+(Other contributors are listed in <a href="#contributors">Appendix D</a>.)
 </p>
 <p>
 Copyright © 2018, 2019 <a href="https://wso2.com/">WSO2</a>
@@ -38,21 +38,15 @@ Attribution-NoDerivatives 4.0 International</a> license
 Language and document status
 </p>
 <p>
-The design of the Ballerina language is approaching stability.
+The language described in this specification is now stable, with the exception
+of features that are explicitly marked as having <em>Preview</em> status. We
+expect the final design of these features to be close enough to the current
+design that it will be straightforward for code that makes uses the current
+design to be updated to the final design.
 </p>
 <p>
-Some language features described by this specification are less stable than the
-rest of the language. These are marked with either as having either "preview" or
-"experimental" status. Preview status means that we expect the final design to
-be close enough to the current design that it will be straightforward to update
-code that makes uses the current design to the final design. Experimental status
-means that we believe that we want to have similar functionality, but we are not
-yet confident about how close the final design will be to the feature as
-currently described.
-</p>
-<p>
-In addition, we know there are some areas where the specification needs to
-provide more details about the semantics of the language.
+The specification of features that have not yet reached preview status has been
+moved into a separate <a href="experimental.html">document</a>.
 </p>
 <p>
 Comments on this document are welcome and should be made by creating an issue in
@@ -73,36 +67,37 @@ mailing list.
 <p><a href="#expressions">6. Expressions</a></p>
 <p><a href="#actions_statements">7. Actions and statements</a></p>
 <p><a href="#module_level">8. Module-level declarations</a></p>
-<p><a href="#querying">9. [Experimental] Querying</a></p>
-<p><a href="#transactions">10. [Experimental] Transactions</a></p>
-<p><a href="#metadata">11. Metadata</a></p>
-<p><a href="#lang_library">12. Lang library</a></p>
+<p><a href="#metadata">9. Metadata</a></p>
+<p><a href="#lang_library">10. Lang library</a></p>
 <p><a href="#references">A. References</a></p>
 <p><a href="#changes">B. Changes since previous versions</a></p>
-<p><a href="#contributors">C. Other contributors</a></p>
+<p><a href="#planned_future_functionality">C. Planned future functionality</a></p>
+<p><a href="#contributors">D. Other contributors</a></p>
 </section>
 <section>
 <h2 id="introduction">1. Introduction</h2>
 <p>
-Ballerina is a programming language intended for network distributed
-applications. It is a statically typed, concurrent programming language with all
-functionality expected of a modern, general purpose programming language. But it
-also has several unusual aspects that make it particularly suitable for its
-intended purpose.
+Ballerina is a statically typed, concurrent programming language, focusing on
+network interaction and structured data. It is intended to be the core of a
+language-centric middleware platform. It has all the general-purpose
+functionality expected of a modern programming language, but it also has several
+unusual aspects that make it particularly suitable for its intended purpose.
 </p>
 <p>
 First, it provides language constructs specifically for consuming and providing
 network services. Future versions of Ballerina will add language constructs for
-other functionality often needed by network distributed applications such as
-security, stream processing, distributed transactions and reliable messaging.
+other middleware functionality such as event stream processing, distributed
+transactions and reliable messaging; this is described in more detail in <a
+href="planned_future_functionality">Appendix C</a>.
 </p>
 <p>
-Second, it is designed to take advantage of sequence diagrams as a way of
-describing the interactions within network distributed applications. There is a
-close correspondence between the function-level concurrency-related syntax and
-sequence diagrams; this syntax is in effect a syntax for writing sequence
-diagrams. This makes it possible to provide an editable graphical representation
-of a function as a sequence diagram.
+Second, its abstractions and syntax for concurrency and network interaction have
+been designed so that there is a close correspondence with sequence diagrams.
+This enables a bidirectional mapping for any Ballerina function between its
+textual representation in the syntax described in this specification and its
+graphical representation as a sequence diagram, such that the sequence diagram
+fully shows the aspects of the behavior of that function that relate to
+concurrency and network interaction.
 </p>
 <p>
 Third, it has a type system that is more flexible and allows for looser coupling
@@ -115,22 +110,23 @@ union types and open records. This flexibility allows the type system to be used
 as a schema for the data that is exchanged in distributed applications.
 Ballerina's data types are designed to work particularly well with JSON; any
 JSON value has a direct, natural representation as a Ballerina value. Ballerina
-also provides support for XML and relational data.
+also provides support for XML and tabular data.
 </p>
 <p>
 Ballerina is not a research language. It is intended to be a pragmatic language
 suitable for mass-market commercial adoption. It tries to feel familiar to
-programmers who are used to popular, modern C-family languages, notably Java,
-C#, JavaScript. It also borrows ideas from many other existing programming
-languages including TypeScript, Go, Rust, D, Kotlin, Swift, Python and Perl.
+programmers who are used to popular, modern C-family languages, notably Java, C#
+and JavaScript. It also gets ideas and inspiration from many other existing
+programming languages including TypeScript, Go, Rust, D, Kotlin, Swift, Python
+and Perl.
 </p>
 <p>
-The Ballerina language was designed as part of the Ballerina platform, which is
-a comprehensive software development platform that provides support for modern
-development practices, with a module based development model with namespace
-management via module repositories, including a globally shared central
-repository. Module version management, dependency management, testing,
-documentation, building and sharing are all part of this platform.
+The Ballerina language has been designed in conjunction with the Ballerina
+platform, which provides comprehensive support for a module-based software
+development model, including versioning, dependency management, testing,
+documentation, building and sharing. Modules are organized into repositories;
+there is a globally-shared, central repository, but repositories can also be
+local.
 </p>
 <p>
 The Ballerina language includes a small library, the lang library, which
@@ -166,7 +162,7 @@ greater than or equal to that of x and less than or equal to that of y</li>
 <li><code>symbol </code>means a reference to production for the nonterminal
 <code>symbol</code></li>
 <li><code>x|y</code> means x or y</li>
-<li><code>x&amp;y</code> means x and y interleaved in any order</li>
+<li><code>x&amp;y</code> means x and y, interleaved in any order</li>
 <li><code>[x]</code> means zero or one times</li>
 <li><code>x?</code> means x zero or one times</li>
 <li><code>x*</code> means x zero or more times</li>
@@ -174,7 +170,7 @@ greater than or equal to that of x and less than or equal to that of y</li>
 <li><code>(x)</code> means x (grouping)</li>
 </ul>
 <p>
-The rhs of a symbol that starts with a lower-case letter implicitly allows white
+The <code>rhs</code> of a symbol that starts with a lower-case letter implicitly allows white
 space and comments, as defined by the production <code>TokenWhiteSpace</code>,
 between the terminals and nonterminals that it references.
 </p>
@@ -213,7 +209,7 @@ each associated with a separate binary module. Versions are semantic, as
 described in the SemVer specification.
 </p>
 <p>
-A project stores modules using a simpler single level hierarchy, in which the
+A project stores modules using a simpler single-level hierarchy, in which the
 module is associated directly with the module name.
 </p>
 <p>
@@ -410,6 +406,13 @@ that the variable will only ever contain a value that belongs to the type.
 Ballerina also provides mechanisms that take a value that looks like a type and
 use it to create a value that belongs to a type.
 </p>
+<pre
+class="grammar">type-descriptor :=
+   simple-type-descriptor
+   | structured-type-descriptor
+   | behavioral-type-descriptor
+   | other-type-descriptor
+</pre>
 <p>
 Ballerina provides a rich variety of type descriptors, which programs use to
 describe types. For example, there is a type descriptor for each simple basic
@@ -420,20 +423,7 @@ arbitrarily many types, even though they look like or belong to exactly one
 <em>basic</em> type.
 </p>
 <p>
-In addition to describing a type, a type descriptor may also include information
-used to construct a value of the type, as well as metadata. Whereas the type
-described by a type descriptor is known at compile time, this additional
-information may need to be resolved at runtime. The typedesc basic type
-represents a type descriptor that has been resolved.
-</p>
-<p>
-Most basic types of structured values (along with one basic type of simple
-value) are iterable, meaning that a value of the type can be accessed as a
-sequence of simpler values.
-</p>
-<p>
 The following table summarizes the type descriptors provided by Ballerina.
-Experimental features are not included.
 </p>
 <table>
   <tr>
@@ -489,7 +479,7 @@ terms of names of fields (required keys) and value for each field</td>
   </tr>
   <tr>
    <td>table</td>
-   <td></td>
+   <td>a two-dimesional collection of immutable values</td>
   </tr>
   <tr>
    <td>XML</td>
@@ -509,15 +499,15 @@ type</td>
   </tr>
   <tr>
    <td>future</td>
-   <td></td>
+   <td>a value to be returned by a function execution</td>
   </tr>
   <tr>
    <td>object</td>
-   <td></td>
+   <td>a combination of named fields and named methods</td>
   </tr>
   <tr>
    <td>service</td>
-   <td></td>
+   <td>a collection of named methods, including resource methods</td>
   </tr>
   <tr>
    <td>typedesc</td>
@@ -542,11 +532,11 @@ type</td>
   </tr>
   <tr>
    <td>any</td>
-   <td>all values</td>
+   <td>any value other than an error</td>
   </tr>
   <tr>
    <td>anydata</td>
-   <td></td>
+   <td>not an error and does not contain behavioral members at any depth</td>
   </tr>
   <tr>
    <td>byte</td>
@@ -558,6 +548,19 @@ type</td>
 values are, recursively, json</td>
   </tr>
 </table>
+<p>
+In addition to describing a type, a type descriptor may also include information
+used to construct a value of the type, as well as metadata. Whereas the type
+described by a type descriptor is known at compile time, this additional
+information may need to be resolved at runtime. The typedesc basic type
+represents a type descriptor that has been resolved.
+</p>
+<p>
+Most basic types of structured values (along with one basic type of simple
+value) are iterable, meaning that a value of the type can be accessed as a
+sequence of simpler values.
+</p>
+
 <section>
 <h3>Simple values</h3>
 <p>
@@ -1322,7 +1325,6 @@ class="grammar">behavioral-type-descriptor :=
    | object-type-descriptor
    | future-type-descriptor
    | service-type-descriptor
-   | stream-type-descriptor
    | typedesc-type-descriptor
    | handle-type-descriptor
 </pre>
@@ -1691,9 +1693,9 @@ the T<sub>o</sub> must be in the same module.
 class="grammar">future-type-descriptor := <code>future</code> [type-parameter]
 </pre>
 <p>
-A future value represents a value to be returned by a named worker.  A future
-value belongs to a type <code>future&lt;T&gt;</code> if the value to be returned
-belongs to T.
+A future value refers to a named worker, which will return a value. A future
+value belongs to a type <code>future&lt;T&gt;</code> if the return type of the
+named worker is a subtype of T.
 </p>
 <p>
 A value belongs to a type <code>future</code> (without the type-parameter)
@@ -1707,10 +1709,17 @@ if it has basic type future.
 class="grammar">service-type-descriptor := <code>service</code>
 </pre>
 <p>
-A service value contains resources and methods. A service method is similar to
-an object method. A resource is a special kind of method, with associated
-configuration data, that is invoked in response to network input received by a
-Listener.
+A service is like an object, but differs in the following respects:
+</p>
+<ul>
+<li>a method of a service can be declared as a resource method, but cannot be
+declared as a remote method</li>
+<li>a service is stateless and does not have fields</li>
+</ul>
+<p>
+A resource method is a special kind of method, with associated configuration
+data, that is invoked in response to network messages received by a Listener. A
+service can be thought of as the dual of a client object.
 </p>
 <p>
 All service values belong to the type <code>service</code>.
@@ -1720,24 +1729,6 @@ It is planned that a future version of Ballerina will provide a mechanism that
 allows more precise typing of services. In the meantime, implementations can use
 annotations on type definitions to support this.
 </p>
-</section>
-<section>
-<h4>[Preview] Streams</h4>
-
-<pre
-class="grammar">stream-type-descriptor := <code>stream</code> [type-parameter]
-</pre>
-<p>
-A value of type <code>stream&lt;T&gt;</code> is a distributor for values of type
-<code>T</code>: when a value v of type T is put into the stream, a function will
-be called for each subscriber to the stream with v as an argument. T must be a
-pure type.
-</p>
-<p>
-A value belongs to a type <code>stream</code> (without the type-parameter)
-if it has basic type stream.
-</p>
-
 </section>
 <section>
 <h4>Type descriptors</h4>
@@ -1775,12 +1766,12 @@ A value belongs to a type <code>handle</code> if it has a basic type of handle.
 </section>
 </section>
 <section>
-<h3>Type descriptors</h3>
+<h3>Other type descriptors</h3>
+
 <pre
-class="grammar">type-descriptor :=
-   simple-type-descriptor
-   | structured-type-descriptor
-   | behavioral-type-descriptor
+class="grammar">other-type-descriptor :=
+   type-reference
+   | <code>(</code> type-descriptor <code>)</code>
    | singleton-type-descriptor
    | union-type-descriptor
    | optional-type-descriptor
@@ -1788,8 +1779,6 @@ class="grammar">type-descriptor :=
    | anydata-type-descriptor
    | byte-type-descriptor
    | json-type-descriptor
-   | type-reference
-   | <code>(</code> type-descriptor <code>)</code>
 type-reference := identifier | qualified-identifier
 </pre>
 <p>
@@ -1908,11 +1897,7 @@ There are several abstract object types that are built-in in the sense that the
 language treats objects with these types specially. Note that it is only the
 types that are built-in; the names of these types are not built-in.
 </p>
-<p>
-<strong>Note</strong> It is likely that a future version of this specification
-will provide generic types, so that a library can provide definitions of these
-built-in types.
-</p>
+
 <section>
 <h4>Iterator</h4>
 <p>
@@ -1950,6 +1935,18 @@ sequence between the previous position and the new position</li>
 </li>
 </ul>
 <p>
+Mutation of the container during iteration is handled as follows. At any point
+during the execution of a program, a container has a set of valid keys; these
+are keys for which the container has a member; a key has type int for lists and
+type string for maps. A call to <code>next()</code> must panic if the set of
+valid keys is not the same as the set of valid keys when the iterator was
+created, with the following exception: it is allowed to remove a key if the
+member for that key has already been returned by <code>next()</code>. The value
+that a container associates with a particular key may change during the
+iteration; <code>next()</code> must return the value associated with the key at
+the point when <code>next()</code> is called.
+</p>
+<p>
 Note that it is not possible for the <code>next()</code> method simply to return
 a member of the sequence, since a nil member would be indistinguishable from the
 return value for the end position.
@@ -1964,6 +1961,7 @@ subtype of Iterator&lt;T&gt;. In this specification, we refer to this type as
 Iterable&lt;T&gt;.
 </p>
 </section>
+<!--
 <section>
 <h4>Collection</h4>
 <p>
@@ -1976,6 +1974,7 @@ specification, we refer to these types as ImmutableCollection&lt;T&gt; and
 MutableCollection&lt;T&gt;.
 </p>
 </section>
+-->
 <section>
 <h4>Listener</h4>
 <p>
@@ -1983,10 +1982,11 @@ The Listener type is defined as follows.
 </p>
 
 <pre>abstract object {
-   public function __attach (service s, string? name = ()) returns error?;
-   public function __start () returns error?;
-   public function __gracefulStop () returns error?;
-   public function __immediateStop () returns error?;
+   public function __attach(service s, string? name = ()) returns error?;
+   public function __detach(service s) returns error?;
+   public function __start() returns error?;
+   public function __gracefulStop() returns error?;
+   public function __immediateStop() returns error?;
 }
 </pre>
 <p>
@@ -2077,11 +2077,6 @@ have a filler value)</td>
 <tr>
 <td><code>xml</code></td>
 <td><code>xml``</code></td>
-<td></td>
-</tr>
-<tr>
-<td><code>stream&lt;T&gt;</code></td>
-<td><code>new stream&lt;T&gt;</code></td>
 <td></td>
 </tr>
 <tr>
@@ -2368,30 +2363,55 @@ will never fail at runtime.
 </p>
 </section>
 <section>
-<h4>Variable scoping</h4>
+<h4>Variable and identifier scoping</h4>
 <p>
-For every variable, there is place in the program that creates it. Variables are
-lexically scoped: every variable has a scope which determines the region of the
-program within which the variable can be referenced.
+For every variable, there is place in the program that declares it. Variables
+are lexically scoped: every variable declaration has a scope which determines
+the region of the program within which the variable can be referenced.
 </p>
 <p>
-There are two kinds of scope: module scope and block scope. A variable with
-module scope can be referenced anywhere within a module. Identifiers with module
-scope are used to identify not only variables but other module-level entities
-such as functions.
+There are two kinds of scope: module-scope and block-scope. A variable with
+module-scope can be referenced anywhere within a module; if declared
+<code>public</code>, it can also be referenced from outside the module.
 </p>
 <p>
-A variable with block scope can be referenced only within a particular block
-(always delimited with curly braces). Block-scope variables are created by a
-variety of different constructs, many of which use a typed-binding-pattern.
-Parameters are treated as read-only variables with block scope.
+Identifiers with module-scope are used to identify not only variables but other
+module-level entities such as functions. Within module-scope, identifiers are
+separated into three symbol spaces:
+</p>
+<ul>
+<li>the <em>main</em> symbol space includes identifiers for variables,
+constants, types, functions and other identifiers that do not belong to any of
+the other two symbol spaces;</li>
+<li>the <em>prefix</em> symbol space contains prefixes declared by import
+declarations and XML namespace declaration statements;</li>
+<li>the <em>annotation tag</em> symbol space contains annotation tags declared
+by annotation declarations.</li>
+</ul>
+<p>
+The prefix symbol space is special in that it is associated with a source part
+rather than a module.
 </p>
 <p>
-A variable with block scope can have the same name as a variable with module
-scope; the former variable will hide the latter variable while the former
-variable is in scope. However, it is a compile error if a variable with block
-scope has the same name as another variable with block scope and the two scopes
-overlap.
+Block-scope is divided into symbol spaces in the same way as module-scope,
+except that block-scope does not have a symbol space for annotation tags, since
+annotation tags cannot be declared with block-scope.
+</p>
+<p>
+An identifier declared with block-scope can be referenced only within a
+particular block (always delimited with curly braces). Block-scope variables are
+created by a variety of different constructs, many of which use a
+typed-binding-pattern. Parameters are treated as read-only variables with
+block-scope.
+</p>
+<p>
+It is not an error if an identifier is declared with block-scope and there is
+already a declaration of the same identifier in the same symbol space with
+module-scope. In this case, the block-scope declaration will hide the
+module-scope declaration for the region where the block-scope declaration is in
+scope. However, it is a compile error if an identifier is declared with
+block-scope and its scope overlaps with the scope of another declaration of the
+same identifier in the same symbol space also with block-scope.
 </p>
 </section>
 </section>
@@ -2435,7 +2455,6 @@ class="grammar">expression :=
    | conditional-expr
    | checking-expr
    | trap-expr
-   | table-query-expr
    | <code>(</code> expression <code>)</code>
 </pre>
 <p>
@@ -2905,9 +2924,7 @@ computed-field-name := <code>[</code> expression <code>]</code>
 value-expr := expression
 </pre>
 <p>
-A mapping-constructor-expr creates a new mapping value. An expression can be
-used to specify the name of a field by enclosing the expression in square
-brackets.
+A mapping-constructor-expr creates a new mapping value. 
 </p>
 <p>
 If there is a contextually expected type, then the inherent type of the newly
@@ -2928,6 +2945,12 @@ value-expr in the mapping-constructor-expr. It is an compile-time error if there
 is both no value-expr and no contextually expected type.
 </p>
 <p>
+If the inherent type descriptor is a record type descriptor and a field is
+specified using a field-name rather than a string-literal or expression, then
+the record type descriptor must include that field-name as an
+individual-type-descriptor.
+</p>
+<p>
 If the inherent type descriptor is a record type descriptor, a field will be
 added to the constructed value using the default value from the type descriptor
 for any field that is not specified explicitly in the mapping constructor and
@@ -2939,6 +2962,17 @@ requires for each field provides the contextually expected type for the
 value-expr for that field; otherwise there is no contextually expected type for
 the value-expr forfields. The contextually expected type for a
 computed-field-name is string.
+</p>
+<p>
+A field can have a computed field name, where the name of the field is specified
+by an expression enclosed in square brackets. A mapping-constructor-expr first
+constructs a mapping value without considering any fields with a computed field
+name. The effect of a field with a computed fieldname is to modify the member of
+the mapping with that name after the mapping has been constructed. If the
+modification is incompatible with the inherent type, then the
+mapping-constructor-expr will panic. The modifications are performed in the
+order in which the fields with computed field names occur in the
+mapping-constructor-expr.
 </p>
 
 </section>
@@ -2987,17 +3021,15 @@ class="grammar">service-constructor-expr := [annots] <code>service</code> servic
 service-body-block := <code>{</code> service-method-defn* <code>}</code>
 service-method-defn :=
    metadata
-   service-method-defn-quals
+   [<code>resource</code>]
    <code>function</code> identifier function-signature method-body
-service-method-defn-quals :=
-   [explicit-visibility-qual | <code>resource</code>]
 </pre>
 <p>
 A <code>service-constructor-expr</code> constructs a service value. The result
 of evaluating a service-constructor-expr is a value of type service. If a
-service-method-defn contains a resource qualifier, then it defines a resource,
-otherwise it defines a method. The self variable can be used in a method-body of
-a service-method-defn in the same way as for objects.
+service-method-defn contains a <code>resource</code> qualifier, then it defines
+a resource method. The self variable can be used in a method-body of a
+service-method-defn in the same way as for objects.
 </p>
 <p>
 Each service value has a distinct type descriptor. (Evaluating a service
@@ -3005,7 +3037,7 @@ constructor thus has an effect analogous to defining an anonymous object type
 and then creating a value of that type.)
 </p>
 <p>
-The return type of a resource must be a subtype of <code>error?</code> and must contain
+The return type of a resource method must be a subtype of <code>error?</code> and must contain
 nil.
 </p>
 </section>
@@ -3124,7 +3156,8 @@ variable-reference := identifier | qualified-identifier
 </pre>
 <p>
 A variable-reference can refer to a variable, a parameter, a constant (defined
-with a module constant declaration) or a type (defined with a type definition).
+with a module constant declaration), a function or a type (defined with a type
+definition).
 </p>
 <p>
 If the variable-reference references a type defined with a type definition, then
@@ -3243,7 +3276,7 @@ field-name.</li>
 class="grammar">annot-access-expr := expression <code>.@</code> annot-tag-reference
 </pre>
 <p>
-The annot-tag-reference must refer to an annotation tag declared with an
+The annot-tag-reference must refer to an annotation tag0 declared with an
 annotation declaration. The static type of expression must be a subtype of
 <code>typedesc</code>.
 </p>
@@ -3407,15 +3440,17 @@ lang library. The evaluation of the method-call-expr starts by evaluating
 contextually expected type for <code>expression</code>.
 </p>
 <p>
-If the static type of <code>expression</code> is a subtype of object or a
-subtype of service, and the object type or service type includes a method named
-<code>method-name</code>, then the <code>method-call-expr</code> is executed by
-calling that method on <var>v</var>. The <code>arg-list</code> is used to
-construct an argument list that is passed to the method in the same way as with
-a <code>function-call-expr</code>. A <code>method-call-expr</code> cannot be
-used to call a remote method; it can only be called by a
-<code>remote-method-call-action</code>. A <code>method-call-expr</code> cannot
-be used to invoke a resource.
+If the static type of <code>expression</code> is a subtype of object, and the
+object type includes a method named <code>method-name</code>, then the
+<code>method-call-expr</code> is executed by calling that method on
+<var>v</var>. A <code>method-call-expr</code> can be used within a method of a
+service to call another method of that service other than a resource method; in
+this case, <code>expression</code> must be <code>self</code>. The
+<code>arg-list</code> is used to construct an argument list that is passed to
+the method in the same way as with a <code>function-call-expr</code>. A
+<code>method-call-expr</code> cannot be used to call a remote method; it can
+only be called by a <code>remote-method-call-action</code>. A
+<code>method-call-expr</code> cannot be used to call a resource method.
 </p>
 <p>
 Otherwise, the <code>method-call-expr</code> will be turned into a call to a
@@ -3620,12 +3655,18 @@ as the static type of the operand. The semantics for each basic type are as
 follows:
 </p>
 <ul>
-<li>int: negation for int is the same as subtraction from zero; an exception is
-thrown on overflow, which happens when the operand is -2<sup>63</sup></li>
+<li>int: negation for int is the same as subtraction from zero; a panic will
+occur on overflow, which happens when the operand is -2<sup>63</sup>)</li>
 <li>float, decimal: negation for floating point types corresponds to the negate
 operation as defined by IEEE 754-2008 (this is not the same as subtraction from
-zero); no exceptions are thrown</li>
+zero);</li>
 </ul>
+<p>
+If the contextually expected type for a <code>-</code> expression is T, then the
+contextualy expected type for the operand expressions is T', where a value v is
+in T' if it belongs to int, decimal or float, and T contains a value with the
+same basic type as v.
+</p>
 <p>
 The unary + operator returns the value of its operand expression. The static
 type of the operand must be a number, and the static type of the result is the
@@ -3655,50 +3696,63 @@ The <code>*</code> operator performs multiplication; the <code>/</code> operator
 performs division; the <code>%</code> operator performs remainder.
 </p>
 <p>
-The static type of both operand expressions is required to be the same basic
-type; this basic type will be the static type of the result. The following basic
-types are allowed:
+The static type of both operand expressions is required to be a subtype of the
+same basic type; this basic type will be the static type of the result. The
+following basic types are allowed:
 </p>
 <ul>
 <li>int
 <ul>
-<li>* performs integer multiplication; an exception will be thrown on overflow</li>
-<li>/ performs integer division, with any fractional part discarded ie with
-truncation towards zero; an exception will be thrown on division by zero or on
-overflow (which happens if the first operand is -2<sup>63</sup> and the second
-operand is -1)</li>
-<li>% performs integer remainder consistent with integer division, so that if
-x/y does not throw an exception, then (x/y)*y + (x%y) is equal to x; an
-exception will be thrown if the second operand is zero; if the first operand is
+<li><code>*</code> performs integer multiplication; a panic will occur on overflow</li>
+<li><code>/</code> performs integer division, with any fractional part discarded
+ie with truncation towards zero; a panic will occur on division by zero or
+overflow, which happens if the first operand is -2<sup>63</sup> and the second
+operand is -1</li>
+<li><code>%</code> performs integer remainder consistent with integer division,
+so that if <code><var>x</var>/<var>y</var></code> does not result in a panic,
+then <code>(<var>x</var>/<var>y</var>)*<var>y</var> +
+(<var>x</var>%<var>y</var>)</code> is equal to <code><var>x</var></code>; a
+panic will occur if the second operand is zero; if the first operand is
 -2<sup>63</sup> and the second operand is -1, then the result is 0</li>
 </ul>
 </li>
 <li>float, decimal
 <ul>
 <li><code>*</code> performs the multiplication operation with the destination
-format being the same as the source format, as defined by IEEE 754-2008; no
-exceptions are thrown</li>
+format being the same as the source format, as defined by IEEE 754-2008; this
+never causes a panic to occur</li>
 <li><code>/</code> performs the division operation with the destination format
-being the same as the source format, as defined by IEEE 754-2008; no exceptions
-are thrown</li>
+being the same as the source format, as defined by IEEE 754-2008; this never
+causes a panic to occur</li>
 <li><code>%</code> performs a remainder operation; the remainder is not the
 IEEE-defined remainder operation but is instead a remainder operation analogous
 to integer remainder; more precisely,
 <ul>
-<li>if x is NaN or y is NaN or x is an infinity or y is a zero, then x % y is
-NaN</li>
-<li>for finite x, and infinite y, x % y is x</li>
-<li>for finite x and finite non-zero y, x % y is equal to the result of rounding
-x - (y × n) to the nearest representable value using the roundTiesToEven
-rounding mode, where n is the integer that is nearest to the mathematical
-quotient of x and y without exceeding it in magnitude; if the result is zero,
-then its sign is that of x</li>
+<li>if <code><var>x</var></code> is NaN or <code><var>y</var></code> is NaN or
+<code><var>x</var></code> is an infinity or <code><var>y</var></code> is a zero,
+then <code><var>x</var> % <var>y</var></code> is NaN</li>
+<li>for finite <code>x</code>, and infinite <code>y</code>, <code><var>x</var> %
+<var>y</var></code> is <code><var>x</var></code></li>
+<li>for finite <code><var>x</var></code> and finite non-zero
+<code><var>y</var></code>, <code><var>x</var> % <var>y</var></code> is equal to
+the result of rounding <code><var>x</var> - (<var>y</var> × <var>n</var>)</code>
+to the nearest representable value using the roundTiesToEven rounding mode,
+where <code><var>n</var></code> is the integer that is nearest to the
+mathematical quotient of <code><var>x</var></code> and <code><var>y</var></code>
+without exceeding it in magnitude; if the result is zero, then its sign is that
+of <code><var>x</var></code></li>
 <li>no exceptions are thrown</li>
 </ul>
 </li>
 </ul>
 </li>
 </ul>
+<p>
+If the contextually expected type for a multiplicative-expr is T, then the
+contextualy expected type for both operand expressions is T', where a value v is
+in T' if it belongs to int, decimal or float, and T contains a value with the
+same basic type as v.
+</p>
 </section>
 <section>
 <h3>Additive expression</h3>
@@ -3716,11 +3770,12 @@ The <code>+</code> operator is used for both addition and concatenation; the
 It is required that either
 </p>
 <ul>
-<li>the static type of both operand expressions is the same basic type, in which
-case this basic type will be the static type of the result, or</li>
-<li>the static type of one operand expression must be xml and of the other
-operand expression must be string, in which case the static type of the result
-is xml</li>
+<li>the static type of both operand expressions is a subtype of the same basic
+type, in which case this basic type will be the static type of the result,
+or</li>
+<li>the static type of one operand expression must be a subtype of xml and of
+the other operand expression must be a subtype of string, in which case the
+static type of the result is xml</li>
 </ul>
 <p>
 The semantics for each basic type is as follows:
@@ -3728,16 +3783,20 @@ The semantics for each basic type is as follows:
 <ul>
 <li>int
 <ul>
-<li>+ performs integer addition; an exception will be thrown on overflow</li>
-<li>- peforns integer subtraction; an exception will be thrown on overflow</li>
+<li><code>+</code> performs integer addition; a panic will occur on
+overflow</li>
+<li><code>-</code> performs integer subtraction; a panic will occur on
+overflow</li>
 </ul>
 </li>
 <li>float, decimal
 <ul>
-<li>+ performs the addition operation with the destination format being the same
-as the source format, as defined by IEEE 754-2008; no exceptions are thrown</li>
-<li> - performs the subtraction operation with the destination format being the
-same as the source format, as defined by IEEE 754-2008; no exceptions are thrown</li>
+<li><code>+</code> performs the addition operation with the destination format
+being the same as the source format, as defined by IEEE 754-2008; this never
+causes a panic to occur</li>
+<li><code>-</code> performs the subtraction operation with the destination
+format being the same as the source format, as defined by IEEE 754-2008; this
+never causes a panic to occur</li>
 </ul>
 </li>
 <li>string, xml
@@ -3753,6 +3812,13 @@ were an xml sequence with one character item for each code point in the string</
 </ul>
 </li>
 </ul>
+<p>
+If the contextually expected type for a multiplicative-expr is T, then the
+contextualy expected type for both operand expressions is T', where a value v is
+in T' if it belongs to int, decimal, float, string or xml and T contains a value
+with the same basic type as v.
+</p>
+
 </section>
 <section>
 <h3>Shift expression</h3>
@@ -3929,20 +3995,48 @@ the result is as follows:
 <ul>
 <li>for AND, if the type of one operand is a subtype of byte, then the result
 has type byte; otherwise, the result has type int;</li>
-<li>for OR, if the type of both operands have a type that is a subtype of byte,
-then the result has type byte; otherwise, the result has type int;</li>
-<li>for XOR, the result has type int.</li>
+<li>for XOR or OR, if the type of both operands have a type that is a subtype of byte,
+then the result has type byte; otherwise, the result has type int.</li>
 </ul>
 </section>
+
 <section>
 <h3>Logical expression</h3>
 
 <pre
-class="grammar">logical-expr :=
-   expression <code>&amp;&amp;</code> expression
-   | expression <code>||</code> expression
+class="grammar">logical-expr := logical-and-expr | logical-or-expr
+logical-and-expr := expression <code>&amp;&amp;</code> expression
+logical-or-expr := expression <code>||</code> expression
 </pre>
+
+<p>
+The static type of each expression in a logical-expr must be a subtype of
+boolean.
+</p>
+<p>
+A logical-and-expr is evaluated as follows:
+</p>
+<ol>
+<li>the left-hand expression is evaluated, resulting in a value <var>x</var>;</li>
+<li>if <var>x</var> is <code>false</code>, then the result of the
+logical-and-expr is <var>x</var>, and the right-hand expression is not
+evaluated;</li>
+<li>otherwise, the result of the logical-and-expr is the result of evaluating
+the right-hand expression.</li>
+</ol>
+<p>
+A logical-or-expr is evaluated as follows:
+</p>
+<ol>
+<li>the left-hand expression is evaluated, resulting in a value <var>x</var>;</li>
+<li>if <var>x</var> is <code>true</code>, then the result of the
+logical-or-expr is <var>x</var>, and the right-hand expression is not
+evaluated;</li>
+<li>otherwise, the result of the logical-or-expr is the result of evaluating
+the right-hand expression.</li>
+</ol>
 </section>
+
 <section>
 <h3>Conditional expression</h3>
 
@@ -4013,12 +4107,12 @@ T|error.</li>
 
 <pre
 class="grammar">action :=
-   remote-method-call-action
-   | start-action
-   | receive-action 
+   start-action
    | wait-action
+   | send-action
+   | receive-action 
    | flush-action
-   | sync-send-action
+   | remote-method-call-action
    | checking-action
    | trap-action
    | <code>(</code> action <code>)</code>
@@ -4065,7 +4159,7 @@ to executing another strand. The following actions cause a strand to yield:
 <li>worker-receive-action</li>
 <li>wait-action</li>
 <li>flush-action</li>
-<li>synchronous-send-action</li>
+<li>sync-send-action</li>
 </ul>
 <p>
 In addition, any function with an external-function-body can potentially yield;
@@ -4128,8 +4222,7 @@ own new strand. The termination of a function is independent of the termination
 of its named workers. The termination of a named worker does not automatically
 result in the termination of its function. When a default worker terminates
 causing the function to terminate, the function does not automatically wait for
-the termination of its named workers. There is a wait-action that allows one
-worker to explicitly wait for the termination of another worker.
+the termination of its named workers.
 </p>
 <p>
 A named worker has a return type. If the worker terminates normally, the
@@ -4170,10 +4263,22 @@ They are implicitly final: they can be read but not modified. They are in scope
 for named workers as well as for the default worker.
 </p>
 <p>
-The name of a worker is in-scope as a final local variable. The scope is the
-function-body-block with the exception of the default-worker-init. When the
-worker name is accessed using a variable-reference-expr, it has type
-future&lt;T&gt;, where T is the return type of the worker.
+The scope of a worker-name in a named-worker-decl that is part of a
+function-body-block is the entire function-body-block with the exception of the
+default-worker-init. When a worker-name is in scope, it can be used in a
+variable-reference-expr. The result of evaluating such a variable reference is a
+future value that refers to the value to be returned by that named worker. The
+static type of the result is future&lt;T&gt;, where T is the return type of the
+worker.
+</p>
+<p>
+A strand can initiate a wait on another strand by using a wait-action with a
+value of type future. Only one wait on a strand can succeed; this wait receives
+the value returned by the strand. Any other waits on that strand fail. It is a
+compile-time error if for any named worker it is possible for the name of that
+worker to be evaluated as a variable-reference more than once for any execution
+of that worker. This ensures that wait operations that use just a worker-name to
+identify the strand to wait on cannot fail at runtime.
 </p>
 <p>
 In the above, function includes method, and function call includes method call.
@@ -4201,12 +4306,7 @@ class="grammar">statement :=
    | continue-stmt
    | fork-stmt
    | panic-stmt
-   | lock-stmt
-   | async-send-stmt
    | return-stmt
-   | forever-stmt
-   | transaction-stmt
-   | transaction-control-stmt
 </pre>
 <p>
 The execution of any statement may involve the evaluation of actions and
@@ -4249,17 +4349,35 @@ workers (similar to the situation with parameters and workers in a function
 body).
 </p>
 <p>
-The scope of the worker name declared in a named-worker-decl includes both other
-workers in the same fork-stmt and the block containing the fork-stmt starting
-from the point immediately after the fork-stmt. When a worker-name is in scope
-it can be accessed using a variable-reference-expr, resulting in a value of type
-future&lt;T&gt;, where T is the return type of that worker.
+The scope of the worker-name in a named-worker-decl that is part of a fork-stmt
+consists of both other workers in the same fork-stmt and the block containing
+the fork-stmt starting from the point immediately after the fork-stmt. Within
+its scope, the worker-name can be used in a variable-reference-expr in the same
+way as the worker-name of a named-worker-decl that is part of a
+function-body-block.
 </p>
+</section>
+<section>
+<h3>Start action</h3>
+
+<pre
+class="grammar">start-action := [annots] <code>start</code> (function-call-expr|method-call-expr|remote-method-call-action)
+</pre>
+
+<p>
+The keyword <code>start</code> causes the following function or method
+invocation to be executed on a new strand. The arguments for the function or
+method call are evaluation on the current strand. A start-action returns a value
+of basic type future immediately. If the static type of the call expression or
+action <code><var>C</var></code> is T, then the static type of <code>start
+<var>C</var></code> is future&lt;T&gt;.
+</p>
+
 </section>
 <section>
 <h3>Wait action</h3>
 <p>
-A wait-action waits for one or more workers to terminate, and gives access to
+A wait-action waits for one or more strands to terminate, and gives access to
 their termination values.
 </p>
 
@@ -4273,10 +4391,30 @@ wait-future-expr := expression <em>but not</em> mapping-constructor-expr
 </pre>
 <p>
 A wait-future-expr is used by a wait-action to refer to the worker to be waited
-for. Its static type must be future&lt;T&gt; for some T. It can use a variable
-reference to refer to an in-scope named-worker-decl, which will be treated as a
-reference to a variable of type future&lt;T&gt; where T is the return value of the
-worker.
+for. Its static type must be future&lt;T&gt; for some T. As elsewhere, a
+wait-future-expr can use an in-scope worker-name in a variable-reference-expr to
+refer to named worker.
+</p>
+<p>
+Evaluation of a wait-action performs a wait operation on the future value that
+results from evaluating a wait-future-expr. This wait operation may complete
+normally or abruptly. The wait operation initiates a wait for the strand that
+the future refers to. If the wait fails, then the wait operation completes
+normally and the result is an error. If the wait succeeds, and the strand
+completed normally, then the wait operation completes normally, and the result
+is the termination value of the strand. If the wait succeeds, but the strand
+completed abnormally, then the wait operation completes abruptly with a panic
+and the associated value is the termination value of the strand.
+</p>
+<p>
+In addition to a static type, a wait-future-expr has a compile-time <em>eventual
+type</em>. If a wait-future-expr is a variable-reference-expr referring to the
+worker-name of a named worker with return type T, then the eventual type of the
+wait-future-expr is T. Otherwise, the eventual of a wait-future-expr with static
+type future&lt;T&gt; is T|error. The result of a wait operation that completes
+normally will belong to the eventual type of the wait-future-expr, since the
+compiler ensures that a wait for a wait-future-expr that is a variable reference
+to a named worker cannot fail.
 </p>
 <p>
 Note that it is only possible to wait for a named worker, which will start its
@@ -4297,17 +4435,13 @@ class="grammar">single-wait-action := <code>wait</code> wait-future-expr
 A single-wait-action waits for a single future.
 </p>
 <p>
-A single-wait-action is evaluated by evaluating wait-future-expr resulting in a
-value f, which must be of basic type future. It then waits until the strand of
-the future has terminated. If the strand terminates normally, the
-single-wait-action completes normally with the termination value of the strand
-as the result. Otherwise, the single-wait-action completes abruptly with a
-panic, with the associated value being the termination value of the strand,
-which will be an error.
+A single-wait-action is evaluated by first evaluating wait-future-expr resulting
+in a value f of basic type future; the single-wait-action then performs a wait
+operation on f.
 </p>
 <p>
-If the static type of the wait-future-expr is future&lt;T&gt; , then the static
-type of the single-wait-action is then T.
+The static type of the single-wait-action is the eventual type of the
+wait-future-expr.
 </p>
 </section>
 <section>
@@ -4329,11 +4463,17 @@ wait-field <code>v: v</code>, where <code>v</code> must be the name of an
 in-scope named worker.
 </p>
 <p>
-A multiple-wait-action is evaluated by evaluating all of the wait-future-exprs
-resulting in a value of type future for each wait-field. It then waits for all
-of these futures. If all the futures complete normally, then it constructs a
-record with a field for each wait-field, whose name is the field-name and whose
-value is the completion value of the strand.
+A multiple-wait-action is evaluated by evaluating each wait-future-expr
+resulting in a value of type future for each wait-field. The
+multiple-wait-action then performs a wait operation on all of these futures. If
+all the wait operations complete normally, then it constructs a record with a
+field for each wait-field, whose name is the field-name and whose value is the
+result of the wait operation. If any of the wait operations complete abruptly,
+then the multiple-wait-action completes abruptly.
+</p>
+<p>
+The static type of the multiple-wait-action is a record where the static type of
+each field is the eventual type of the corresponding wait-future-expr.
 </p>
 </section>
 <section>
@@ -4346,19 +4486,19 @@ class="grammar">alternate-wait-action := <code>wait</code> wait-future-expr (<co
 An alternate-wait-action waits for one of multiple futures to terminate.
 </p>
 <p>
-An alternate-wait-action is evaluated by first evaluating all of the
-wait-future-exprs, resulting in a set of future values. It then starts waiting
-for all of the futures. As soon as one of the futures completes normally with a
-non-error value v, the alternate-wait-action completes normally with result v.
-If all of the futures complete normally with an error, then it completes
-normally with result e, where e is the termination value of the last future to
-complete.
+An alternate-wait-action is evaluated by first evaluating each wait-future-expr,
+resulting in a set of future values. The alternate-wait-action then performs a
+wait operation on all of these members of this set. As soon as one of the wait
+operations completes normally with a non-error value v, the
+alternate-wait-action completes normally with result v. If all of the wait
+operations complete normally with an error, then it completes normally with
+result e, where e is the result of the last wait operation to complete. If any
+of the wait operations completely abruptly before the alternate-wait-action
+completes, then the alternate-wait-action completes abruptly.
 </p>
 <p>
-If the static type of the wait-future-exprs is future&lt;T<sub>1</sub>&gt;,
-future&lt;T<sub>2</sub>&gt;, ..., future&lt;T<sub>n</sub>&gt;, then the static
-type of the alternative-wait action is
-T<sub>1</sub>|T<sub>2</sub>|...T<sub>n</sub>.
+The static type of the alternate-wait-action is the union of the eventual type
+of all of its wait-future-exprs.
 </p>
 </section>
 </section>
@@ -4400,38 +4540,35 @@ added to the queue.
 <h4>Send action and send statement</h4>
 
 <pre
-class="grammar">sync-send-action := expression <code>->></code> peer-worker
-async-send-stmt := expression <code>-></code> peer-worker <code>;</code>
+class="grammar">send-action := sync-send-action | async-send-action
+sync-send-action := expression <code>-&gt;&gt;</code> peer-worker
+async-send-action := expression <code>-&gt;</code> peer-worker <code>;</code>
 </pre>
 <p>
-The sync-send-action and async-send-stmt send a message to another worker. In
-both cases, the message is the result of applying the Clone abstract operation
-to the result of evaluating expr. The message is sent to the worker identified
-by peer-worker.
+A send-action sends a message to the worker that is identified by peer-worker. A
+send-action starts by evaluating the expression, resulting in a value
+<code><var>v</var></code>; the Clone abstract operation to
+<code><var>v</var></code> resulting in value <code><var>c</var></code>. This
+value <code><var>c</var></code> is added to the message queue maintained by the
+sending worker for messages to be sent to the sending worker;this queue
+continues to exist even if the receiving worker has already terminated.
 </p>
 <p>
-In both cases, the message is added to the message queue maintained by the
-sending worker for messages to be sent to the sending worker. Conceptually, the
-message is added to the queue even if the receiving worker has already
-terminated.
+For each send-action S, the compiler determines a unique corresponding
+receive-action R, such that a message sent by S will be received by R, unless
+R's worker has terminated abnormally or with failure. It is a compile-time error
+if this cannot be done. The compiler determines a <em>failure type</em> for the
+corresponding receive-action. If the receive-action was not executed and its
+worker terminated normally, then the termination value of the worker will belong
+to the failure type. The failure type will be a (possibly empty) subtype of
+error.
 </p>
 <p>
-For each async-send-stmt and sync-send-action S, the compiler determines a
-unique corresponding receive-action R, such that a message sent by S will be
-received by R, unless R's worker has terminated abnormally or with failure. It
-is a compile-time error if this cannot be done. The compiler determines a
-<em>failure type</em> for the corresponding receive-action. If the
-receive-action was not executed and its worker terminated normally, then the
-termination value of the worker will belong to the failure type. The failure
-type will be a (possibly empty) subtype of error.
-</p>
-<p>
-The execution of the async-send-stmt completes as soon as the message is added
-to the queue. A subsequent flush action can be used to check whether the message
-was received.
-</p>
-<p>
-The sync-send-action is evaluated by waiting until the receiving worker either
+The difference between async-send-action and sync-send-action is in what happens
+after the message is added to the queue. The evaluation of async-send-action
+completes immediately after this, and the result is always <code>()</code>. A
+subsequent flush action can be used to check whether the message was received.
+With sync-send-action, evaluation waits until the receiving worker either
 executes a receive action that receives the queued message or terminates. The
 evaluation of sync-send-action completes as follows:
 </p>
@@ -4457,14 +4594,14 @@ The contextually expected type used to interpret <code>expression</code> is the
 contextually expected type from the corresponding receive-action.
 </p>
 <p>
-If the receive-action corresponding to an async-send-stmt has a non-empty
+If the receive-action corresponding to an async-send-action has a non-empty
 failure type, then it is a compile-time error unless it can be determined that a
 sync-send-action or a flush-action will be executed before the sending worker
 terminates with success.
 </p>
 <p>
 If a worker W is about to terminate normally and there are messages still to be
-sent in a queue (which must be the result of executing an async-send-stmt), then
+sent in a queue (which must be the result of executing an async-send-action), then
 the worker waits until the messages have been received or some receiving worker
 terminates. If a receiving worker R terminates without the message being
 received, R must have terminated abnormally, because the rule in the preceding
@@ -4490,7 +4627,7 @@ A single-receive-action receives a message from a single worker.
 <p>
 For each single-receive-action R receiving from worker W, the compiler
 determines a <em>corresponding send set</em>. The corresponding send set S is a
-set of sync-send-actions and async-send-stmts in W, such that
+set of send actions in W, such that
 </p>
 <ul>
 <li>in any execution of W that terminates successfully, exactly one member of S
@@ -4500,10 +4637,10 @@ unless W has terminated abnormally or with failure.</li>
 </ul>
 <p>
 The compiler terminates a failure type for the corresponding send set. If no
-member of the corresponding send set was executed/evaluated and the sending
-worker terminated normally, then the termination value of the sending worker
-will belong to the failure type. The failure type will be a (possibly empty)
-subtype of error.
+member of the corresponding send set was evaluated and the sending worker
+terminated normally, then the termination value of the sending worker will
+belong to the failure type. The failure type will be a (possibly empty) subtype
+of error.
 </p>
 <p>
 A single-receive-action is evaluated by waiting until there is a message
@@ -4601,7 +4738,7 @@ If peer-worker is specified, then flush waits until the queue of messages to be
 received by peer-worker is empty or until the peer-worker terminates.
 </p>
 <p>
-Send-receive correspondence for async-send-stmt implies that the queue will
+Send-receive correspondence for async-send-action implies that the queue will
 eventually become empty, unless the peer-worker terminates abnormally or with
 failure. The evaluation of flush-action completes as follows:
 </p>
@@ -4617,10 +4754,10 @@ the associated value being the termination value of the peer-worker.</li>
 </li>
 </ul>
 <p>
-If the flush-action has a preceding async-send-stmt without any intervening
+If the flush-action has a preceding async-send-action without any intervening
 sync-send-action or other flush-action, then the static type of the flush-action
 is F|(), where F is the failure type of the receive-action corresponding to that
-async-send-stmt. Otherwise, the static type of the flush-action is nil.
+async-send-action. Otherwise, the static type of the flush-action is nil.
 </p>
 <p>
 If peer-worker is omitted, then the flush-action flushes the queues to all other
@@ -4661,6 +4798,31 @@ success before it has executed one member from every send set.</li>
 </ul>
 </section>
 </section>
+
+<section>
+<h3>Remote interaction</h3>
+
+<p>
+A client object is a stub that allows a worker to send network messages to a
+remote process according to some protocol. A local variable declared with client
+object type will be depicted as a lifeline in the function's sequence diagram.
+The remote methods of the client object correspond to distinct network messages
+defined by the protocol for the role played by the client object. The return
+value of a remote method represents the protocol's response. A
+remote-method-call-action is depicted as a horizontal arrow from the worker
+lifeline to the client object lifeline.
+</p>
+
+<pre
+class="grammar">remote-method-call-action := expression <code>-&gt;</code> method-name <code>(</code> arg-list <code>)</code>
+</pre>
+<p>
+Calls a remote method. This works the same as a method call expression, except
+that it is used only for a method with the <code>remote</code> modifier.
+</p>
+
+</section>
+
 <section>
 <h3>Local variable declaration statements</h3>
 
@@ -4835,13 +4997,13 @@ is executed.
 <h3>[Preview] XML namespace declaration statement</h3>
 
 <pre
-class="grammar">xmlns-decl-stmt :=
-   <code>xmlns</code> xml-namespace-uri [ <code>as</code> xml-namespace-prefix ] <code>;</code>
+class="grammar">xmlns-decl-stmt := xmlns-decl
+xmlns-decl := <code>xmlns</code> xml-namespace-uri [ <code>as</code> xml-namespace-prefix ] <code>;</code>
 xml-namespace-uri := simple-const-expr
 xml-namespace-prefix := identifier
 </pre>
 <p>
-The <code>xmlns-decl-stmt</code> is used to declare a XML namespace. If there is
+An <code>xmlns-decl</code> is used to declare a XML namespace. If there is
 an <code>xml-namespace-prefix</code>, then the in-scope namespaces that are used
 to perform namespace processing on an <code>xml-expr</code> will include a
 binding of that prefix to the specified <code>xml-namespace-uri</code>;
@@ -4852,7 +5014,9 @@ specified <code>xml-namespace-uri</code>.
 An <code>xml-namespace-prefix</code> declared by an <code>xmlns-decl-stmt</code>
 is in the same symbol space as a <code>module-prefix</code> declared by an
 <code>import-decl</code>. This symbol space is distinct from a module's main
-symbol space used by other declarations.
+symbol space used by other declarations. An <code>xmlns-decl</code> in a
+<code>xmlns-decl-stmt</code> declares the prefix within the scope of the current
+block.
 </p>
 <p>
 The static type of the <code>simple-const-expr</code> must be a subtype of
@@ -5184,35 +5348,6 @@ static type of the call-expr in an call-stmt is not nil.
 </p>
 </section>
 <section>
-<h3>Remote method call action</h3>
-
-<pre
-class="grammar">remote-method-call-action := expression <code>-></code> method-name <code>(</code> arg-list <code>)</code>
-</pre>
-<p>
-Calls a remote method. This works the same as a method call expression, except
-that it is used only for a method with the <code>remote</code> modifier.
-</p>
-
-</section>
-<section>
-<h3>Start action</h3>
-
-<pre
-class="grammar">start-action := [annots] <code>start</code> (function-call-expr|method-call-expr|remote-method-call-action)
-</pre>
-
-<p>
-The keyword <code>start</code> causes the following function or method
-invocation to be executed on a new strand. The arguments for the function or
-method call are evaluation on the current strand. A start-action returns a value
-of basic type future immediately. If the static type of the call expression or
-action <code><var>C</var></code> is T, then the static type of <code>start
-<var>C</var></code> is future&lt;T&gt;.
-</p>
-
-</section>
-<section>
 <h3>Conditional statement</h3>
 
 <pre
@@ -5482,25 +5617,6 @@ enclosing while-stmt or foreach-stmt to terminate.
 </p>
 </section>
 <section>
-<h3>[Experimental] Lock statement</h3>
-
-<pre
-class="grammar">lock-stmt := <code>lock</code> block-stmt
-</pre>
-<p>
-A lock statement is used to execute a series of assignment statements in a
-serialized manner. For each variable that is used as an L-value within the block
-statement, this statement attempts to first acquire a lock and the entire
-statement executes only after acquiring all the locks. If a lock acquisition
-fails after some have already been acquired then all acquired locks are released
-and the process starts again.
-</p>
-<p>
-<strong>Note</strong> <em>The design of shared data access is likely to change
-in a future version.</em>
-</p>
-</section>
-<section>
 <h3>Panic statement</h3>
 
 <pre
@@ -5542,15 +5658,59 @@ not constrained.
 <pre
 class="grammar">module-part := import-decl* other-decl*
 other-decl :=
-   module-type-defn
+   listener-decl
+   | service-decl
+   | function-defn
+   | module-type-defn
    | module-const-decl
    | module-var-decl
-   | listener-decl
-   | function-defn
-   | service-decl
-   | xmlns-decl-stmt
+   | module-xmlns-decl
    | annotation-decl
 </pre>
+<section>
+<h3>Import declaration</h3>
+
+<pre
+class="grammar">import-decl := 
+   <code>import</code> [org-name <code>/</code>] module-name [<code>version</code> sem-ver] 
+   [<code>as</code> import-prefix] <code>;</code>
+import-prefix := module-prefix | <code>_</code>
+module-prefix := identifier
+org-name := identifier
+module-name := identifier (<code>.</code> identifier)*
+sem-ver := major-num [<code>.</code> minor-num [<code>.</code> patch-num]]
+major-num := DecimalNumber
+minor-num := DecimalNumber
+patch-num := DecimalNumber
+
+qualified-identifier := module-prefix <code>:</code> identifier
+</pre>
+<p>
+A <code>module-prefix</code> is a name that is used locally within the source of
+a module to refer to another module. A <code>module-prefix</code> in a
+qualified-identifier must refer to a <code>module-prefix</code> specified in an
+import-declaration in the same source part.
+</p>
+<p>
+An import-prefix of <code>_</code> causes the module to be imported without
+making its symbols available via a module-prefix. In this case, the effect of
+importing the module will be just to cause the module to be included in the
+program and initialized. It is an error for a source-part to import a module
+using a module-prefix and then not to use that module-prefix.
+</p>
+<p>
+A <code>module-prefix</code> declared by an <code>import-decl</code> is in the
+same symbol space as a <code>xmlns-namespace-prefix</code> declared by an
+<code>xmlns-decl-stmt</code>. This symbol space is distinct from a module's main
+symbol space used by other declarations.
+</p>
+<p>
+It is an error for a module to directly or indirectly import itself. In other
+words, the directed graph of module imports must be acyclic.
+</p>
+
+</section>
+
 <section>
 <h3>Module and program execution</h3>
 <p>
@@ -5568,10 +5728,10 @@ consecutive phases: an initialization phase and a listening phase.
 </p>
 <p>
 Module initialization is performed by calling an initialization function, which
-is synthesized by the compiler for each module. Module initialization can be
-unsuccessful, in which case the initialization function returns an error value.
-The initialization phase of program execution consists of initializing each of
-the program's modules. If the initialization of a module is unsuccessful, then
+is synthesized by the compiler for each module. Module initialization can fail,
+in which case the initialization function returns an error value. The
+initialization phase of program execution consists of initializing each of the
+program's modules. If the initialization of a module is unsuccessful, then
 program execution immediately terminates unsuccessfully, returning the error
 value returned by the initialization function.
 </p>
@@ -5610,61 +5770,166 @@ becomes the new root module.
 </p>
 <p>
 If the initialization phase of program execution completes successfully, then
-execution proceeds to the listening phase. The runtime state of each module
-includes a list of listener objects that have been registered with the module. A
-listener object is a <em>registered listener</em> of a running program if it is
-a member of the list of registered listeners of any of the program's modules. If
-at the start of the listening phase of program execution there are no registered
+execution proceeds to the listening phase, which is described in the next
+section. The termination of the listening phase, which may be successful or
+unsuccessful, terminates the program execution.
+</p>
+</section>
+
+<section>
+<h3>Listeners and services</h3>
+
+<p>
+Services have resource methods, which are the network entry points of a
+Ballerina program. Listeners provide the interface between the network and
+services. A listener object receives network messages from a remote process
+according to some protocol and translates the received messages into calls on
+the resource methods of service values that have been attached to the listener
+object. It is up to the listener object to determine how this translation
+happens; the type of the listener object thus constrains the type of a service
+that can be attached to the listener. (This constraint is not yet enforced by
+Ballerina's type system.)
+</p>
+<p>
+The return type of a resource method represents whether the method successfully
+handled the protocol message. The listener typically calls a resource method
+with a client object as a parameter. The remote methods on the client object
+correspond to the distinct network messages defined by the protocol as possible
+responses to the message that the resource method is handling. A resource method
+called by a listener as a result of a network message received from a remote
+process can then use the client object to send a response message back to that
+remote process.
+</p>
+<p>
+The methods defined by the Listener abstract object type allow for the
+management of the lifecycle of a listener object and its attached services. A
+listener declaration registers a listener object with a module, so that it can
+be managed by the module. The runtime state of each module includes a list of
+listener objects that have been registered with the module. A listener object
+that has been registered with a module is called a <em>module listener</em>
+</p>
+<p>
+If at the start of the listening phase of program execution there are no module
 listeners, then the listening phase immediately terminates successfully.
-Otherwise, the <code>__start</code> method of each registered listener is
-called; if any of these calls returns an error value, then program execution
-terminates unsuccessfully with this error value as its return value.
+Otherwise, the <code>__start</code> method of each module listener is called; if
+any of these calls returns an error value, then the listening phase terminates
+unsuccessfully with this error value as its return value.
 </p>
 <p>
 The listening phase of program execution continues until either the program
 explicitly exits, by calling a standard library function, or the user explicitly
 requests the termination of the program using an implementation-dependent
 operating system facility (such as a signal on a POSIX system). In the latter
-case, the program will call the <code>__gracefulStop</code> or
-<code>__immediateStop</code> method on each registered listener before
-terminating.
+case, the <code>__gracefulStop</code> or <code>__immediateStop</code> method of
+each registered listener will be called before termination.
 </p>
-</section>
+
 <section>
-<h3>Import declaration</h3>
+<h4>Listener declaration</h4>
 
 <pre
-class="grammar">import-decl := 
-   <code>import</code> [org-name <code>/</code>] module-name [<code>version</code> sem-ver] 
-   [<code>as</code> module-prefix] <code>;</code>
-module-prefix := identifier
-org-name := identifier
-module-name := identifier (<code>.</code> identifier)*
-sem-ver := major-num [<code>.</code> minor-num [<code>.</code> patch-num]]
-major-num := DecimalNumber
-minor-num := DecimalNumber
-patch-num := DecimalNumber
-
-qualified-identifier := module-prefix <code>:</code> identifier
+class="grammar">listener-decl :=
+   metadata
+   [<code>public</code>] <code>listener</code> [type-descriptor] variable-name <code>=</code> expression <code>;</code>
 </pre>
 <p>
-A <code>module-prefix</code> is a name that is used locally within the source of
-a module to refer to another module. A <code>module-prefix</code> in a
-qualified-identifier must refer to a <code>module-prefix</code> specified in an
-import-declaration in the same source part.
+A <code>listener-decl</code> declares a module listener. A module listener
+declares a variable in a similar way to a final variable declaration, but the
+type of the variable is always a subtype of the Listener abstract object type,
+and it has the additional semantic of registering the variable's value with the
+module as a listener. As with a variable declared in a final variable
+declaration, the variable can be referenced by a variable-reference, but cannot
+be assigned to. A module may have multiple multiple listeners.
 </p>
 <p>
-A <code>module-prefix</code> declared by an <code>import-decl</code> is in the
-same symbol space as a <code>xmlns-namespace-prefix</code> declared by an
-<code>xmlns-decl-stmt</code>. This symbol space is distinct from a module's main
-symbol space used by other declarations.
+If the type-descriptor is present it specifies the static type of the variable;
+if it is not present, the the static type is the static type of
+<code>expression</code>. In both cases, the static type is constrained to be a
+subtype of the Listener abstract object type.
 </p>
 <p>
-It is an error for a module to directly or indirectly import itself. In other
-words, the directed graph of module imports must be acyclic.
+When a listener-decl is initialized as part of module initialization, its
+expression is evaluated. If expression evaluation completes abruptly, then
+module initialization fails. Otherwise the variable is initialized with the
+result of the evaluation.
 </p>
 
 </section>
+
+<section>
+<h4>Service declaration</h4>
+
+<pre
+class="grammar">service-decl :=
+  metadata
+  <code>service</code> [variable-name] <code>on</code> expression-list service-body-block
+expression-list := expression (<code>,</code> expression)*
+</pre>
+<p>
+A <code>service-decl</code> creates a service and attaches it to one or more
+listeners. If a variable-name is specified, it also declares a variable; as with
+a variable declared in a final variable declaration, the variable can be
+referenced by a variable-reference, but cannot be assigned to.
+</p>
+<p>
+The service-body-block has the same semantics as in a service-constructor-expr.
+The static type of each expression in the expression list must be a subtype of
+the union of error with the Listener abstract object type. If an implementation
+is using annotations to provide more precise typing of services, then any
+annotations on the service type that is the first parameter of the
+<code>__attach</code> method in the object type of each expression in expression
+list will constrain the type of the service value constructed by the
+service-body-block.
+</p>
+<p>
+A service-decl is initialized as part of module initialization as follows. The
+service-body-block is evaluated as in a service-constructor resulting in a
+service value <code><var>s</var></code>. If variable-name is specified, then the
+variable is initialized to <code><var>s</var></code>. Then for each expression
+in expression-list:
+</p>
+<ol>
+<li>the expression is evaluated resulting in a value which is either an error or
+an object <code><var>obj</var></code> that is a subtype of Listener;</li>
+<li>if it is an error, module initialization fails;</li>
+<li>otherwise, <code><var>obj</var></code> is registered as a module listener
+(registering the same object multiple times is the same as registering it
+once);</li>
+<li><code><var>s</var></code> is then attached to <code><var>obj</var></code>
+using <code><var>obj</var></code>'s <code>__attach</code> method;</li>
+<li>if the call to <code>__attach</code> fails, then module initialization
+fails.</li>
+</ol>
+</section>
+</section>
+
+<section>
+<h3>Function definition</h3>
+
+<pre
+class="grammar">function-defn := 
+   metadata
+   [<code>public</code>]
+   <code>function</code> identifier function-signature function-body
+function-body := function-body-block | external-function-body
+external-function-body := <code>=</code> [annots] <code>external</code> <code>;</code>
+</pre>
+<p>
+An <code>external-function-body</code> means that the implementation of the
+function is not provided in the Ballerina source module.
+</p>
+<p>
+If a module has a function-defn with an identifier of <code>__init</code>, it is
+called called automatically by the system at the end of the initialization of
+that module; if this call returns an error, then initialization of the module
+fails. The following special requirements apply to the <code>__init</code>
+function of a module: it must not be declared <code>public</code>; its return
+type must both be a subtype of <code>error?</code> and contain <code>()</code>;
+it must have no parameters.
+</p>
+
+</section>
+
 <section>
 <h3>Module type definition</h3>
 
@@ -5723,263 +5988,22 @@ not specify the type of the constant, although the type of the constant will all
 be a subtype of the type specified by the type-descriptor.
 </p>
 </section>
-<section>
-<h3>Listener declaration</h3>
 
+<section>
+<h3>[Preview] Module XML namespace declaration</h3>
 <pre
-class="grammar">listener-decl :=
-   metadata
-   [<code>public</code>] <code>listener</code> [type-descriptor] identifier <code>=</code> expression <code>;</code>
+class="grammar">module-xmlns-decl := xmlns-decl
 </pre>
+
 <p>
-A <code>listener-decl</code> defines a module listener.
-</p>
-<p>
-A module listener is an object value that belongs to the Listener abstract
-object type and is managed as part of the module's lifecycle. A module may have
-multiple listeners.
-</p>
-<p>
-A module-listener can be referenced by a variable-reference, but cannot be
-modified. It is this similar to a final variable declaration, except that it
-also registers the value with the module as a listener.
-</p>
-<p>
-A module listener has a static type, which must be a subtype of the Listener
-type. If the type-descriptor is present it specifies the module listener's
-static type; if it is not present, the the static type of the listener is the
-static type of <code>expression</code>.
+A <code>module-xmlns-decl</code> declares an XML namespace prefix with module
+scope.
 </p>
 </section>
-<section>
-<h3>Function definition</h3>
-
-<pre
-class="grammar">function-defn := 
-   metadata
-   [<code>public</code>]
-   <code>function</code> identifier function-signature function-body
-function-body := function-body-block | external-function-body
-external-function-body := <code>=</code> [annots] <code>external</code> <code>;</code>
-</pre>
-<p>
-An <code>external-function-body</code> means that the implementation of the
-function is not provided in the Ballerina source module.
-</p>
-<p>
-If a module has a function-defn with an identifier of <code>__init</code>, it is
-called called automatically by the system at the end of the initialization of
-that module; if this call returns an error, then initialization of the module
-fails. The following special requirements apply to the <code>__init</code>
-function of a module: it must not be declared <code>public</code>; its return
-type must both be a subtype of <code>error?</code> and contain <code>()</code>;
-it must have no parameters.
-</p>
 
 </section>
 <section>
-<h3>Service declaration</h3>
-
-<pre
-class="grammar">service-decl :=
-  metadata
-  <code>service</code> [identifier] <code>on</code> expression-list service-body-block
-expression-list := expression (<code>,</code> expression)*
-</pre>
-<p>
-Creates a service and attaches it to one or more listeners.
-</p>
-<p>
-This works as follows:
-</p>
-<ul>
-<li>service-body is the same as what goes inside a service constructor</li>
-<li>expression is evaluated to an object obj that matches the Listener interface
-or an error; if its an error then module initialization panics</li>
-<li>obj is registered with the module as one of its endpoints (registering the
-same object multiple times is the same as registering it once)</li>
-<li>service-body-block is evaluated as in a service-constructor to get a service
-value s;  the parameter type of obj.__attach determines the contextually
-expected type</li>
-<li>identifier, if present, works as a final variable whose value is s</li>
-<li>s is attached to obj using obj.__attach; the identifier is supplied as an
-argument to obj.attach along with s (nil if not present)</li>
-<li>if __attach returns an error, then module initialization panics</li>
-</ul>
-</section>
-</section>
-<section>
-<h2 id="querying">9. [Experimental] Querying</h2>
-<p>
-Ballerina tables and streams are designed for processing data at rest and data
-in motion, respectively.
-</p>
-<section>
-<h3>Table query expressions</h3>
-
-<pre
-class="grammar">table-query-expr := 
-   <code>from</code> query-source [query-join-type query-join-source] 
-      [query-select] [query-group-by] [query-order-by]
-      [query-having] [query-limit]
-query-source := identifier [<code>as</code> identifier] [query-where]
-query-where := <code>where</code> expression
-query-join-type := [([<code>left</code> | <code>right</code> | <code>full</code>] <code>outer</code>)| <code>inner</code>] <code>join</code>
-query-join-source := query-source <code>on</code> expression
-query-select := <code>select</code> (<code>*</code> | query-select-list)
-query-select-list := 
-   expression [<code>as</code> identifier] (<code>,</code> expression [<code>as</code> identifier])*
-query-group-by := <code>group</code> <code>by</code> identifier (<code>,</code> identifier)*
-query-order-by :=
-   <code>order</code> <code>by</code> identifier [(<code>ascending</code> | <code>descending</code>)]
-      (<code>,</code> identifier [(<code>ascending</code> | <code>descending</code>)])*
-query-having := <code>having</code> expression
-query-limit := <code>limit</code> int-literal
-</pre>
-<p>
-Query expressions being language integrated SQL-like querying to Ballerina
-tables.
-</p>
-</section>
-<section>
-<h3>Streaming queries</h3>
-
-<pre
-class="grammar">forever-stmt :=
-   <code>forever</code> <code>{</code> 
-      streaming-query-pattern+
-   <code>}</code>
-streaming-query-pattern :=
-   streaming-query-expr <code>=></code> <code>(</code> array-type-descriptor identifier <code>)</code>
-      block-stmt
-streaming-query-expr :=
-   <code>from</code> (sq-source [query-join-type sq-join-source]) | sq-pattern
-      [query-select] [query-group-by] [query-order-by]
-      [query-having] [query-limit] 
-      [sq-output-rate-limiting]
-sq-source := 
-   identifier [query-where] [sq-window [query-where]] 
-      [<code>as</code> identifier]*
-sq-window := <code>window</code> function-call-expr
-sq-join-source := sq-source <code>on</code> expression
-sq-output-rate-limiting := 
-   sq-time-or-event-output | sq-snapshot-output
-sq-time-or-event-output := 
-   (<code>all</code> | <code>last</code> | <code>first</code>) <code>every</code> int-literal (time-scale | <code>events</code>)
-sq-snapshot-output :=
-   <code>snapshot</code> <code>every</code> int-literal time-scale
-time-scale := <code>seconds</code> | <code>minutes</code> | <code>hours</code> | <code>days</code> | <code>months</code> | <code>years</code>
-sq-pattern := [<code>every</code>] sp-input [sp-within-clause]
-sp-within-clause := <code>within</code> expression
-sp-input :=
-   sp-edge-input (<code>followed</code> <code>by</code>) | <code>,</code> streaming-pattern-input
-   | <code>not</code> sp-edge-input (<code>and</code> sp-edge-input) | (<code>for</code> simple-literal)
-   | [sp-edge-input ( <code>and</code> | <code>or</code> ) ] sp-edge-input
-   | <code>(</code> sp-input <code>)</code>
-sp-edge-input :=
-   identifier [query-where] [int-range-expr] [<code>as</code> identifier]
-</pre>
-<p>
-The forever statement is used to execute a set of streaming queries against some
-number of streams concurrently and to execute a block of code when a pattern
-matches. The statement will never complete and therefore the worker containing
-it will never complete. See section 10 for details.
-</p>
-</section>
-</section>
-<section>
-<h2 id="transactions">10. [Experimental] Transactions</h2>
-
-<pre
-class="grammar">transaction-stmt := <code>transaction</code> trans-conf? block-stmt trans-retry?
-transaction-control-stmt := retry-stmt | abort-stmt
-trans-conf := trans-conf-item (<code>,</code> trans-conf-item)*
-trans-conf-item := trans-retries | trans-oncommit | trans-onabort
-trans-retries := <code>retries</code> <code>=</code> expression
-trans-oncommit := <code>oncommit</code> <code>=</code> identifier
-trans-onabort := <code>onabort</code> <code>=</code> identifier
-trans-retry := <code>onretry</code> block-stmt
-retry-stmt := <code>retry</code> <code>;</code>
-abort-stmt := <code>abort</code> <code>;</code>
-</pre>
-<p>
-A transaction statement is used to execute a block of code within a 2PC
-transaction. A transaction can be established by this statement or it may
-inherit one from the current worker.
-</p>
-<section>
-<h3>Initiated transactions</h3>
-<p>
-If no transaction context is present in the worker then the transaction
-statement starts a new transaction (i.e., becomes the initiator) and executes
-the statements within the transaction statement.
-</p>
-<p>
-Upon completion of the block the transaction is immediately tried to be
-committed. If the commit succeeds, then if there's an on-commit handler
-registered that function gets invoked to signal that the commit succeeded. If
-the commit fails, and if the transaction has not been retried more times than
-the value of the retries configuration, then the on-retry block is executed and
-the transaction block statement will execute again in its entirety. If there are
-no more retries available then the commit is aborted the on-abort function is
-called.
-</p>
-<p>
-The transaction can also be explicitly aborted using an abort statement, which
-will call the on-abort function and give up the transaction (without retrying).
-</p>
-<p>
-If a retry statement is executed if the transaction has not been retried more
-times than the value of the retries configuration, then the on-retry block is
-executed and the transaction block statement will execute again in its entirety.
-</p>
-</section>
-<section>
-<h3>Participated transactions</h3>
-<p>
-If a transaction context is present in the executing worker context, then the
-transaction statement joins that transaction and becomes a participant of that
-existing transaction. In this case, retries will not occur as the transaction is
-under the control of the initiator. Further, if the transaction is locally
-aborted (by using the abort statement), the transaction gets marked for abort
-and the participant will fail the transaction when it is asked to prepare for
-commit by the coordinator of the initiator. When the initiating coordinator
-decides to abort the transaction it will notify all the participants globally
-and their on-abort functions will be invoked. If the initiating coordinator
-decides to retry the transaction then a new transaction is created and the
-process starts with the entire containing executable entity (i.e. resource or
-function) being re-invoked with the new transaction context.
-</p>
-<p>
-When the transaction statement reaches the end of the block the transaction is
-marked as ready to commit. The actual commit will happen when the coordinator
-sends a commit message to the participant and after the commit occurs the
-on-commit function will be invoked. Thus, reaching the end of the transaction
-statement and going past does not have the semantic of the transaction being
-committed nor of it being aborted. Thus, if statements that follow the
-transaction statement they are unaware whether the transaction has committed or
-aborted.
-</p>
-<p>
-When in a participating transaction, a retry statement is a no-op.
-</p>
-</section>
-<section>
-<h3>Transaction propagation</h3>
-<p>
-The transaction context in a worker is always visible to invoked functions. Thus
-any function invoked within a transaction, which has a transaction statement
-within it, will behave according to the "participated transactions" semantics
-above.
-</p>
-<p>
-The transaction context is also propagated over the network via the Ballerina
-Microtransaction Protocol [XXX].
-</p>
-</section>
-</section>
-<section>
-<h2 id="metadata">11. Metadata</h2>
+<h2 id="metadata">9. Metadata</h2>
 <p>
 Ballerina allows metadata to be attached to a construct by specifying the
 metadata before the construct.
@@ -6103,6 +6127,7 @@ source-only-attach-point-ident :=
    | <code>var</code>
    | <code>const</code>
    | <code>listener</code>
+   | <code>worker</code>
 </pre>
 <p>
 The <code>annot-attach-points</code> specify the constructs to which an
@@ -6260,7 +6285,6 @@ within documentation strings in a source file. An identifier in backticks
 </p>
 <ul>
 <li><code>type</code></li>
-<li><code>endpoint</code></li>
 <li><code>service</code></li>
 <li><code>variable</code></li>
 <li><code>var</code></li>
@@ -6302,7 +6326,7 @@ Example
 </section>
 </section>
 <section>
-<h2 id="lang_library">12. Lang library</h2>
+<h2 id="lang_library">10. Lang library</h2>
 
 <p>
 Modules in the <code>ballerina</code> organization with a module name starting
@@ -6331,8 +6355,6 @@ basic type int</li>
 basic type mapping</li>
 <li><code><a href="./lib/object.bal" type="text/plain">lang.object</a></code>
 for basic type object</li>
-<li><code><a href="./lib/stream.bal" type="text/plain">lang.stream</a></code>
-for basic type stream</li>
 <li><code><a href="./lib/string.bal" type="text/plain">lang.string</a></code>
 for basic type string</li>
 <li><code><a href="./lib/table.bal" type="text/plain">lang.table</a></code> for
@@ -6349,13 +6371,17 @@ the specification are <a href="./lib/versions.json"
 type="text/plain">specified</a> in JSON format.
 </p>
 <p>
-Modules in the lang library can make use parameterized typing. Since
-parameterized typing has not yet been added to Ballerina, the source code for
-the modules use an annotation to describe parameterized typing as follows. When
-a module type definition has a <code>@typeParam</code> annotation, it means that
-this type serves as a type parameter when it is used in a function definition:
-all uses of the type parameter in a function definition refer to the same type;
-the definition of the type is an upper bound on the type parameter.
+Modules in the lang library can make use generic typing. Since generic typing
+has not yet been added to Ballerina, the source code for the modules use an
+annotation to describe generic typing as follows. When a module type definition
+has a <code>@typeParam</code> annotation, it means that this type serves as a
+type parameter when it is used in a function definition: all uses of the type
+parameter in a function definition refer to the same type; the definition of the
+type is an upper bound on the type parameter.
+</p>
+<p>
+<strong>Note</strong> We plan to provide full support for generic types in
+a future version of this specification.
 </p>
 
 </section>
@@ -6372,6 +6398,18 @@ the definition of the type is an upper bound on the type parameter.
 </section>
 <section class="appendix">
 <h2 id="changes">B. Changes since previous versions</h2>
+<section>
+<h3>Summary of changes from 2019R2 to 2019R3</h3>
+<ol>
+<li>An import declaration can use <code>as _</code> to include a module in the
+program without using its symbols.</li>
+<li>The specification of experimental features has been moved to a separate
+document.</li>
+<li>A wait-action can result in an error value when applied to a future that is
+not a named worker.</li>
+</ol>
+</section>
+
 <section>
 <h3>Summary of changes from 2019R1 to 2019R2</h3>
 <ol>
@@ -6646,7 +6684,66 @@ constrained.</li>
 </section>
 </section>
 <section class="appendix">
-<h2 id="contributors">C. Other contributors</h2>
+<h2 id="planned_future_functionality">C. Planned future functionality</h2>
+
+<p>
+The vision for the Ballerina language includes a large range of functionality
+that is not yet included in this specification.
+</p>
+
+<p>
+Some of this functionality is included in the current Ballerina implementation.
+It is not included in this specification because the language designers are not
+yet confident about how close the final design will be to the feature as
+currently implemented. There is a separate <a
+href="experimental.html">document</a> that describes most of these features. The
+functionality covers the following areas.
+</p>
+
+<ul>
+<li><em>Language-integrated query</em> will provide a convenient SQL-like syntax
+for expressing queries on tables, and perhaps on other types.</li>
+<li><em>Transactions</em> will provide language support both local and
+distributed transactions.</li>
+<li><em>Event stream processing</em> will allow queries over timestamped
+sequences of events</li>
+<li><em>Concurrency safety</em> will allow for safe use of multiple
+threads.</li>
+<li><em>Security</em> will combine language and platform features to make
+programs secure by default.</li>
+<li><em>XML navigation</em> will allow convenient navigation of XML element
+hierarchies, similar to XPath.</li>
+</ul>
+
+<p>
+There are also planned areas of future functionality that are not in the current
+Ballerina implementation.
+</p>
+
+<ul>
+<li><em>Date/time basic types</em> will provide one or more basic types related
+to date and time.</li>
+<li><em>Service typing</em> will allow for proper typing of service values,
+including typing of the response of resource functions.</li>
+<li><em>Generic types</em> will provide types that can be instantiated with one
+or more type parameters.</li>
+<li><em>Flexible message passing</em> will support patterns of communication
+between workers/strands, where the number of messages is not fixed and/or
+workers are not peers.</li>
+<li><em>Long-running processes</em> will allow the execution of a program to be
+automatically suspended and then later resumed upon the occurrence of particular
+external events.</li>
+<li><em>Reliable messaging</em> will allow for sending messages across the
+network with some guarantees about reliability.</li>
+<li><em>Declarative transformation</em> will provide a declarative way to
+describe transformations in terms of a data flow graph, which can have a
+graphical interface.</li>
+</ul>
+
+</section>
+
+<section class="appendix">
+<h2 id="contributors">D. Other contributors</h2>
 <p>
 The following contributed to establishing the design principles of the language:
 </p>
