@@ -1,4 +1,4 @@
-// Copyright (c) 2019 WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+// Copyright (c) 2019, 2020 WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
 //
 // WSO2 Inc. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -36,14 +36,14 @@ type PureType anydata|error;
 #
 # + arr - the array
 # + return - number of members in `arr`
-public function length((any|error)[] arr) returns int = external;
+public isolated function length((any|error)[] arr) returns int = external;
 
 # Returns an iterator over an array.
 #
 # + arr - the array
 # + return - a new iterator object that will iterate over the members of `arr`.
-public function iterator(Type[] arr) returns abstract object {
-    public function next() returns record {|
+public isolated function iterator(Type[] arr) returns object {
+    public isolated function next() returns record {|
         Type value;
     |}?;
 } = external;
@@ -52,7 +52,7 @@ public function iterator(Type[] arr) returns abstract object {
 #
 # + arr - the array
 # + return - array of index, member pairs
-public function enumerate(Type[] arr) returns [int, Type][] = external;
+public isolated function enumerate(Type[] arr) returns [int, Type][] = external;
 
 // Functional iteration
 
@@ -61,21 +61,21 @@ public function enumerate(Type[] arr) returns [int, Type][] = external;
 # + arr - the array
 # + func - a function to apply to each member
 # + return - new array containing result of applying `func` to each member of `arr` in order
-public function 'map(Type[] arr, function(Type val) returns Type1 func) returns Type1[] = external;
+public isolated function 'map(Type[] arr, @isolatedParam function(Type val) returns Type1 func) returns Type1[] = external;
 
 # Applies a function to each member of an array.
 # The function `func` is applied to each member of array `arr` in order.
 #
 # + arr - the array
 # + func - a function to apply to each member
-public function forEach(Type[] arr, function(Type val) returns () func) returns () = external;
+public isolated function forEach(Type[] arr, @isolatedParam function(Type val) returns () func) returns () = external;
 
 # Selects the members from an array for which a function returns true.
 #
 # + arr - the array
 # + func - a predicate to apply to each member to test whether it should be selected
 # + return - new array only containing members of `arr` for which `func` evaluates to true
-public function filter(Type[] arr, function(Type val) returns boolean func) returns Type[] = external;
+public isolated function filter(Type[] arr, @isolatedParam function(Type val) returns boolean func) returns Type[] = external;
 
 # Combines the members of an array using a combining function.
 # The combining function takes the combined value so far and a member of the array,
@@ -91,7 +91,7 @@ public function filter(Type[] arr, function(Type val) returns boolean func) retu
 # reduce([1, 2, 3], function (int total, int n) returns int { return total + n; }, 0)
 # ```
 # is the same as `sum(1, 2, 3)`.
-public function reduce(Type[] arr, function(Type1 accum, Type val) returns Type1 func, Type1 initial) returns Type1 = external;
+public isolated function reduce(Type[] arr, @isolatedParam function(Type1 accum, Type val) returns Type1 func, Type1 initial) returns Type1 = external;
 
 # Returns a subarray starting from `startIndex` (inclusive) to `endIndex` (exclusive).
 #
@@ -99,7 +99,7 @@ public function reduce(Type[] arr, function(Type1 accum, Type val) returns Type1
 # + startIndex - index of first member to include in the slice
 # + endIndex - index of first member not to include in the slice
 # + return - array slice within specified range
-public function slice(Type[] arr, int startIndex, int endIndex = arr.length()) returns Type[] = external;
+public isolated function slice(Type[] arr, int startIndex, int endIndex = arr.length()) returns Type[] = external;
 
 # Removes a member of an array.
 #
@@ -108,44 +108,66 @@ public function slice(Type[] arr, int startIndex, int endIndex = arr.length()) r
 # + return - the member of `arr` that was at `index`
 # This removes the member of `arr` with index `index` and returns it.
 # It panics if there is no such member.
-public function remove(Type[] arr, int index) returns Type = external;
+public isolated function remove(Type[] arr, int index) returns Type = external;
 
 # Removes all members of an array.
 # + arr - the array
 #  Panics if any member cannot be removed.
-public function removeAll((any|error)[] arr) returns () = external;
+public isolated function removeAll((any|error)[] arr) returns () = external;
 
 # Changes the length of an array.
 # 
 # + arr - the array of which to change the length
 # + length - new length
 # `setLength(arr, 0)` is equivalent to `removeAll(arr)`.
-public function setLength((any|error)[] arr, int length) returns () = external;
+public isolated function setLength((any|error)[] arr, int length) returns () = external;
 
 # Returns the index of first member of `arr` that is equal to `val` if there is one.
-# Returns `()` if not found
-# Equality is tested using `==`
+# Returns `()` if not found.
+# Equality is tested using `==`.
 #
 # + arr - the array
 # + val - member to search for
 # + startIndex - index to start the search from
 # + return - index of the member if found, else `()`
-public function indexOf(PureType[] arr, PureType val, int startIndex = 0) returns int? = external;
+public isolated function indexOf(PureType[] arr, PureType val, int startIndex = 0) returns int? = external;
+
+# Returns the index of last member of `arr` that is equal to `val` if there is one.
+# Returns `()` if not found.
+# Equality is tested using `==`.
+#
+# + arr - the array
+# + val - member to search for
+# + startIndex - index to start searching backwards from
+# + return - index of the member if found, else `()`
+public isolated function lastIndexOf(PureType[] arr, PureType val, int startIndex = arr.length() - 1) returns int? = external;
 
 # Reverses the order of the members of an array.
 #
 # + arr - the array to be reversed
 # + return - `arr` with its members in reverse order
-public function reverse(Type[] arr) returns Type[] = external;
+public isolated function reverse(Type[] arr) returns Type[] = external;
 
-# Sorts an array using a comparator function.
-# The comparator function must return a value less than, equal to or greater than zero
-# according as its first argument is to be ordered before, equal to or after its second argument.
+# Direction for `sort` function.
+public enum SortDirection {
+   ASCENDING = "ascending",
+   DESCENDING = "descending"
+}
+
+# Any ordered type is a subtype of this.
+public type OrderedType ()|boolean|int|float|decimal|string|OrderedType[];
+
+# Sorts an array.
+# If the member type of the array is not sorted, then the `key` function
+# must be specified.
+# Sorting works the same as with the `sort` clause of query expressions.
 #
-# + arr - the array to be sorted
-# + func - comparator function
-# + return - `arr` with its members sorted
-public function sort(Type[] arr, function(Type val1, Type val2) returns int func) returns Type[] = external;
+# + arr - the array to be sorted; 
+# + direction - direction in which to sort
+# + key - function that returns a key to use to sort the members
+# + return - a new array consisting of the members of `arr` in sorted order
+public isolated function sort(Type[] arr, SortDirection direction = ASCENDING,
+        (isolated function(Type val) returns OrderedType)? key = ()) returns Type[] = external;
 
 // Stack-like methods (JavaScript, Perl)
 // panic on fixed-length array
@@ -156,13 +178,13 @@ public function sort(Type[] arr, function(Type val1, Type val2) returns int func
 #
 # + arr - the array
 # + return - removed member
-public function pop(Type[] arr) returns Type = external;
+public isolated function pop(Type[] arr) returns Type = external;
 
 # Adds values to the end of an array.
 #
 # + arr - the array
 # + vals - values to add to the end of the array
-public function push(Type[] arr, Type... vals) returns () = external;
+public isolated function push(Type[] arr, Type... vals) returns () = external;
 
 // Queue-like methods (JavaScript, Perl, shell)
 // panic on fixed-length array
@@ -173,7 +195,7 @@ public function push(Type[] arr, Type... vals) returns () = external;
 #
 # + arr - the array
 # + return - the value that was the first member of the array
-public function shift(Type[] arr) returns Type = external;
+public isolated function shift(Type[] arr) returns Type = external;
 
 # Adds values to the start of an array.
 # The values newly added to the array will be in the same order
@@ -181,7 +203,7 @@ public function shift(Type[] arr) returns Type = external;
 # 
 # + arr - the array
 # + vals - values to add to the start of the array
-public function unshift(Type[] arr, Type... vals) returns () = external;
+public isolated function unshift(Type[] arr, Type... vals) returns () = external;
 
 // Conversion
 
@@ -192,7 +214,7 @@ public function unshift(Type[] arr, Type... vals) returns () = external;
 #
 # + arr - the array
 # + return - Base64 string representation
-public function toBase64(byte[] arr) returns string = external;
+public isolated function toBase64(byte[] arr) returns string = external;
 
 # Returns the byte array that a string represents in Base64.
 # `str` must consist of the characters `A..Z`, `a..z`, `0..9`, `+`, `/`, `=`
@@ -200,7 +222,7 @@ public function toBase64(byte[] arr) returns string = external;
 #
 # + str - Base64 string representation
 # + return - the byte array or error
-public function fromBase64(string str) returns byte[]|error = external;
+public isolated function fromBase64(string str) returns byte[]|error = external;
 
 # Returns the string that is the Base16 representation of an array of bytes.
 # The representation is the same as used by a Ballerina Base16Literal.
@@ -209,7 +231,7 @@ public function fromBase64(string str) returns byte[]|error = external;
 #
 # + arr - the array
 # + return - Base16 string representation
-public function toBase16(byte[] arr) returns string = external;
+public isolated function toBase16(byte[] arr) returns string = external;
 
 # Returns the byte array that a string represents in Base16.
 # `str` must consist of the characters `0..9`, `A..F`, `a..f`
@@ -217,4 +239,4 @@ public function toBase16(byte[] arr) returns string = external;
 #
 # + str - Base16 string representation
 # + return - the byte array or error
-public function fromBase16(string str) returns byte[]|error = external;
+public isolated function fromBase16(string str) returns byte[]|error = external;

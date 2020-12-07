@@ -1,4 +1,4 @@
-// Copyright (c) 2019 WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+// Copyright (c) 2020 WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
 //
 // WSO2 Inc. licenses this file to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file except
@@ -14,9 +14,9 @@
 // specific language governing permissions and limitations
 // under the License.
 
-# Requests cancellation of a future.
-# + f - the future to be cancelled
-# This sets the cancellation flag in the strand corresponding to `f`.
-# Each time that a strand yields, it will check the cancellation flag
-# and terminate abnormally if the flag is set.
-public isolated function cancel(future f) returns () = external;
+# An annotation that marks a program element as deprecated.
+#
+# The usage of a deprecated program element is not recommended due to 
+# various reasons. Hence, the compiler issues a warning when such an element is used.
+public const annotation deprecated on source type, source object type, source const, source annotation, 
+                source function, source parameter, source object function, source object field;
